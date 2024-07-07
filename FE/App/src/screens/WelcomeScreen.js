@@ -1,18 +1,31 @@
-import {View, Text, SafeAreaView} from 'react-native';
+import {View, Text, SafeAreaView, TouchableOpacity} from 'react-native';
 import React from 'react';
-import {TouchableOpacity} from 'react-native-gesture-handler';
 import {useNavigation} from '@react-navigation/native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 export default function WelcomeScreen() {
   const navigation = useNavigation();
   return (
-    <SafeAreaView>
-      {/* tailwindcss 사용 안 되는 문제 발생, 문제 해결되면 UI 추가 */}
-      <View>
-        <Text>삐약삐약</Text>
+    <SafeAreaView className="flex-1 flex justify-around bg-default-default">
+      <View className="space-y-2">
+        <Text
+          style={{fontSize: wp(10)}}
+          className="text-center font-bold text-orange-default">
+          삐약삐약
+        </Text>
       </View>
-      <TouchableOpacity>
-        <Text>시작하기</Text>
+      <TouchableOpacity
+        className="bg-orange-default mx-5 p-4 rounded-2xl"
+        onPress={() => navigation.navigate('Home')}
+        activeOpacity={0.7}>
+        <Text
+          style={{fontSize: wp(6)}}
+          className="text-center font-bold text-white">
+          시작하기
+        </Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
