@@ -542,7 +542,7 @@
     "@babel/helper-plugin-utils" "^7.17.12"
     "@babel/plugin-syntax-export-default-from" "^7.16.7"
 
-"@babel/plugin-proposal-export-namespace-from@^7.17.12":
+"@babel/plugin-proposal-export-namespace-from@^7.17.12", "@babel/plugin-proposal-export-namespace-from@^7.18.9":
   version "7.18.9"
   resolved "https://registry.yarnpkg.com/@babel/plugin-proposal-export-namespace-from/-/plugin-proposal-export-namespace-from-7.18.9.tgz#5f7313ab348cdb19d590145f9247540e94761203"
   integrity sha512-k1NtHyOMvlDDFeb9G5PhUXuGj8m/wiwojgQVEhJ/fsVsMCpLyOP4h0uGEjYJKrRI+EVPlb5Jk+Gt9P97lOGwtA==
@@ -6768,6 +6768,11 @@ react-native-vector-icons@^9.2.0:
   dependencies:
     prop-types "^15.7.2"
     yargs "^16.1.1"
+
+react-native-voice@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/react-native-voice/-/react-native-voice-0.3.0.tgz#2ca3ff8f8f6fc6d087e10b6d3ecd50af8e01a166"
+  integrity sha512-puSrXCNn1MM03UZkY8q+GW931OqBCEBCiupNK4vD8i49esGqRDDmzv8sRYyEgXj5ScVDKe6lnlKCmJSn5Wo2UA==
 
 react-native@0.69.0:
   version "0.69.0"
