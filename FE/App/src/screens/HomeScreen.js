@@ -1,17 +1,56 @@
 import {View, Image, Text} from 'react-native';
-import React, {useState} from 'react';
+import React, { useState, useEffect } from 'react';
 import {ScrollView, TouchableOpacity} from 'react-native-gesture-handler';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import Voice from 'react-native-voice';
 import Features from '../components/Features';
 import {dummyMessages} from '../constants';
 
 export default function HomeScreen() {
   const [messages, setMessages] = useState(dummyMessages);
   const [recording, setRecording] = useState(false);
+  const [results, setResults] = useState([]);
+
+  useEffect(() => {
+    Voice.onSpeechResults = onSpeechResults;
+    Voice.onSpeechError = onSpeechError;
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
+
+  const onSpeechResults = (e) => {
+    setResults(e.value);
+    // 음성 인식 결과를 메시지에 추가
+    setMessages([...messages, { role: 'user', content: e.value[0] }]);
+  };
+
+  const onSpeechError = (e) => {
+    console.error(e);
+  };
+
+  const startListening = async () => {
+    try {
+      await Voice.start('ko-KR');
+      setRecording(true);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const stopListening = async () => {
+    try {
+      await Voice.stop();
+      setRecording(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <View className="flex-1 bg-white">
       <SafeAreaView className="flex-1 flex mx-5">
@@ -69,7 +108,7 @@ export default function HomeScreen() {
         )}
         <View className="flex justify-center items-center">
           {recording ? (
-            <TouchableOpacity>
+            <TouchableOpacity onPress={stopListening}>
               <Image
                 className="rounded-full"
                 source={require('../../assets/images/voiceLoading.png')}
@@ -78,7 +117,7 @@ export default function HomeScreen() {
               {/* png -> gif or lottie 애니메이션 추가 예정 */}
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity>
+            <TouchableOpacity onPress={startListening}>
               <Image
                 className="rounded-full"
                 source={require('../../assets/images/recording.png')}
