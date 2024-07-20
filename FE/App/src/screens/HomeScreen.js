@@ -10,7 +10,7 @@ import Features from '../components/Features';
 import {dummyMessages} from '../constants';
 
 export default function HomeScreen() {
-  const [messages, setMessages] = useState(dummyMessages);
+  const [messages, setMessages] = useState([]);
   const [recording, setRecording] = useState(false);
   return (
     <View className="flex-1 bg-white">
