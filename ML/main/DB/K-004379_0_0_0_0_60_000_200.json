@@ -1,0 +1,81 @@
+{
+	"images": [
+		{
+			"file_name": "K-004379_0_0_0_0_60_000_200.png",
+			"width": 976,
+			"height": 1280,
+			"imgfile": "K-004379_0_0_0_0_60_000_200.png",
+			"drug_N": "K-004379",
+			"drug_S": "정상알약",
+			"back_color": "검은색 배경",
+			"drug_dir": "앞면",
+			"light_color": "전구색",
+			"camera_la": 60,
+			"camera_lo": 0,
+			"size": 200,
+			"dl_idx": "4378",
+			"dl_mapping_code": "K-004379",
+			"dl_name": "어린이용타이레놀정 80mg",
+			"dl_name_en": "Children's Tylenol Tab. 80mg",
+			"img_key": "http://connectdi.com/design/img/drug/151317976910600064.jpg",
+			"dl_material": "아세트아미노펜 과립",
+			"dl_material_en": "Acetaminophen Encapsulated",
+			"dl_custom_shape": "정제, 저작정",
+			"dl_company": "(주)한국얀센",
+			"dl_company_en": "Janssen Korea",
+			"di_company_mf": "",
+			"di_company_mf_en": "",
+			"item_seq": 199303109,
+			"di_item_permit_date": "19930924",
+			"di_class_no": "[01140]해열.진통.소염제",
+			"di_etc_otc_code": "일반의약품",
+			"di_edi_code": "646900550,A43800421",
+			"chart": "분홍색의 원형정제",
+			"drug_shape": "원형",
+			"thick": 4.8,
+			"leng_long": 8.1,
+			"leng_short": 8.1,
+			"print_front": "TYLENOL80",
+			"print_back": "",
+			"color_class1": "분홍",
+			"color_class2": "",
+			"line_front": "",
+			"line_back": "",
+			"img_regist_ts": "20041222",
+			"form_code_name": "추어블정(저작정)",
+			"mark_code_front_anal": "",
+			"mark_code_back_anal": "",
+			"mark_code_front_img": "",
+			"mark_code_back_img": "",
+			"mark_code_front": "",
+			"mark_code_back": "",
+			"change_date": "20200424",
+			"id": 1
+		}
+	],
+	"type": "instances",
+	"annotations": [
+		{
+			"area": 44310,
+			"iscrowd": 0,
+			"bbox": [
+				407,
+				504,
+				210,
+				211
+			],
+			"category_id": 1,
+			"ignore": 0,
+			"segmentation": [],
+			"id": 1,
+			"image_id": 1
+		}
+	],
+	"categories": [
+		{
+			"supercategory": "pill",
+			"id": 1,
+			"name": "Drug"
+		}
+	]
+}
