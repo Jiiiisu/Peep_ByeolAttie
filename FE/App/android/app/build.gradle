@@ -264,6 +264,8 @@ dependencies {
 
     implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.0.0"
 
+    //react-native-voice
+    implementation project(':react-native-voice')
     //react-native-tts
     implementation project(':react-native-tts')
 
