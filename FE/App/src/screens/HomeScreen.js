@@ -116,7 +116,7 @@ export default function HomeScreen() {
       // 응답을 메시지에 추가하고 음성으로 출력
       setMessages(prevMessages => [
         ...prevMessages,
-        {role: 'user', content: userMessage},
+        //{role: 'user', content: userMessage},
         {role: 'assistant', content: assistantResponse},
       ]);
 
