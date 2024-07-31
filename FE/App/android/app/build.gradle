@@ -291,6 +291,10 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    implementation project(':lottie-react-native')
+    implementation 'com.facebook.fresco:fresco:1.+'
+    implementation 'com.facebook.fresco:animated-gif:1.+'
 }
 
 if (isNewArchitectureEnabled()) {

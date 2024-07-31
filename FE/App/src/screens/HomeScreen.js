@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Image, Text, PermissionsAndroid, Platform, Alert } from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  Image,
+  Text,
+  PermissionsAndroid,
+  Platform,
+  Alert,
+} from 'react-native';
 import {ScrollView, TouchableOpacity} from 'react-native-gesture-handler';
 import {
   widthPercentageToDP as wp,
@@ -11,6 +18,9 @@ import Tts from 'react-native-tts';
 import Features from '../components/Features';
 import {dummyMessages} from '../constants';
 import {useNavigation} from '@react-navigation/native';
+import Logo from '../../assets/images/Logo.svg';
+import Recording from '../../assets/images/Recording.svg';
+import Stop from '../../assets/images/Stop.svg';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -99,20 +109,24 @@ export default function HomeScreen() {
       setResults(e.value);
       const userMessage = e.value[0];
       //setMessages([...messages, {role: 'user', content: e.value[0]}]);
-      setMessages(prevMessages => [...prevMessages, {role: 'user', content: userMessage}]);
+      setMessages(prevMessages => [
+        ...prevMessages,
+        {role: 'user', content: userMessage},
+      ]);
 
       let assistantResponse;
 
       // '카메라' 음성 명령 처리
       if (userMessage.toLowerCase().includes('카메라')) {
         assistantResponse = '카메라를 켭니다';
-        navigation.navigate('Camera')
+        navigation.navigate('Camera');
       } else {
         // 여기서 서버로 메시지를 보내고 응답을 받는 로직을 추가해야 합니다.
         // 예시로 더미 응답을 사용합니다.
-        assistantResponse = '음성 인식 결과를 받았습니다. 이것은 예시 응답입니다.';
+        assistantResponse =
+          '음성 인식 결과를 받았습니다. 이것은 예시 응답입니다.';
       }
-      
+
       // 응답을 메시지에 추가하고 음성으로 출력
       setMessages(prevMessages => [
         ...prevMessages,
@@ -138,7 +152,10 @@ export default function HomeScreen() {
       console.log('No speech results');
       setMessages(prevMessages => [
         ...prevMessages,
-        {role: 'system', content: '음성이 감지되지 않았습니다. 다시 시도해주세요.'},
+        {
+          role: 'system',
+          content: '음성이 감지되지 않았습니다. 다시 시도해주세요.',
+        },
       ]);
       Tts.speak('알아들을 수 없습니다', {
         iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
@@ -165,7 +182,7 @@ export default function HomeScreen() {
       ...prevMessages,
       {role: 'system', content: `Error: ${e.error.message}`},
     ]);
-    setRecording(false);  // 에러 발생 시 recording 상태 리셋
+    setRecording(false); // 에러 발생 시 recording 상태 리셋
     Alert.alert('Speech Recognition Error', `Error: ${e.error.message}`);
   };
 
@@ -196,16 +213,11 @@ export default function HomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-default-default">
+    <View className="flex-1 bg-default-1">
+      <View className="my-10">
+        <Logo height={hp(7)} />
+      </View>
       <SafeAreaView className="flex-1 flex mx-5">
-        <View className="flex-row justify-center">
-          {/* 상단 타이틀 or 아이콘 다시 설정 예정*/}
-          <Text
-            style={{fontSize: wp(10)}}
-            className="text-center font-bold text-orange-default">
-            삐약삐약
-          </Text>
-        </View>
         {messages.length > 0 ? (
           <View className="space-y-2 flex-1">
             <Text
@@ -215,7 +227,7 @@ export default function HomeScreen() {
             </Text>
             <View
               style={{height: hp(58)}}
-              className="bg-neutral-200 rounded-3xl p-4">
+              className="bg-default-2 rounded-3xl p-4">
               <ScrollView
                 bounces={false}
                 className="space-y-4"
@@ -228,7 +240,9 @@ export default function HomeScreen() {
                         key={index}
                         style={{width: wp(70)}}
                         className="bg-orange-200 rounded-xl p-2 rounded-tl-none">
-                        <Text>{message.content}</Text>
+                        <Text className="text-black text-[24px] font-Regular">
+                          {message.content}
+                        </Text>
                       </View>
                     );
                   } else if (message.role === 'user') {
@@ -237,7 +251,9 @@ export default function HomeScreen() {
                         <View
                           style={{width: wp(70)}}
                           className="bg-white rounded-xl p-2 rounded-tr-none">
-                          <Text>{message.content}</Text>
+                          <Text className="text-black text-[24px] font-Regular">
+                            {message.content}
+                          </Text>
                         </View>
                       </View>
                     );
@@ -246,8 +262,10 @@ export default function HomeScreen() {
                       <View key={index} className="flex-row justify-center">
                         <View
                           style={{width: wp(70)}}
-                          className="bg-red-200 rounded-xl p-2">
-                          <Text>{message.content}</Text>
+                          className="bg-red-200 rounded-xl p-2 items-center">
+                          <Text className="text-black text-[24px] font-Regular">
+                            {message.content}
+                          </Text>
                         </View>
                       </View>
                     );
@@ -258,7 +276,9 @@ export default function HomeScreen() {
                         <View
                           style={{width: wp(70)}}
                           className="bg-white rounded-xl p-2 rounded-tr-none">
-                          <Text>{message.content}</Text>
+                          <Text className="text-black text-[24px] font-Regular">
+                            {message.content}
+                          </Text>
                         </View>
                       </View>
                     );
@@ -268,25 +288,26 @@ export default function HomeScreen() {
             </View>
           </View>
         ) : (
-          <Features />
+          <View>
+            <View className="items-center space-y-2">
+              <View style={{width: wp(90)}} className="p-2">
+                {Features()}
+              </View>
+              <Image
+                source={require('../../assets/images/Peep(2-1).png')}
+                style={{width: wp(60), height: hp(41)}}
+              />
+            </View>
+          </View>
         )}
-        <View className="flex justify-center items-center">
+        <View className="flex justify-center items-center mb-10 absolute bottom-0 left-0 right-0">
           {recording ? (
             <TouchableOpacity onPress={stopListening}>
-              <Image
-                className="rounded-full"
-                source={require('../../assets/images/voiceLoading.png')}
-                style={{width: 100, height: 100}}
-              />
-              {/* png -> gif or lottie 애니메이션 추가 예정 */}
+              <Stop height={hp(10)} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={startListening}>
-              <Image
-                className="rounded-full"
-                source={require('../../assets/images/recording.png')}
-                style={{width: 100, height: 100}}
-              />
+              <Recording height={hp(10)} />
             </TouchableOpacity>
           )}
         </View>

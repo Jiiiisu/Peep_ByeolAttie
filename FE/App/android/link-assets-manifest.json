@@ -1,0 +1,17 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/KoddiUDOnGothic-Bold.ttf",
+      "sha1": "0c8a308de66a5c679b6b3b2efedfd6c458ad6db4"
+    },
+    {
+      "path": "assets/fonts/KoddiUDOnGothic-ExtraBold.ttf",
+      "sha1": "3ddb453a4b9ac9a950376887d46e772314a5e558"
+    },
+    {
+      "path": "assets/fonts/KoddiUDOnGothic-Regular.ttf",
+      "sha1": "1d8d8ad6585415701278b5c1606edb4061d848fc"
+    }
+  ]
+}

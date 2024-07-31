@@ -9,19 +9,7 @@ import {useNavigation} from '@react-navigation/native';
 export default function Features() {
   const navigation = useNavigation();
   return (
-    <View style={{height: hp(60)}} className="space-y-4">
-      <TouchableOpacity
-        onPress={() => navigation.navigate('Camera')}
-        className="bg-orange-50 p-4 rounded-xl space-y-2">
-        <View className="flex-row items-center space-x-1">
-          {/* 아이콘 추가 */}
-          <Text
-            style={{fontSize: wp(4.8)}}
-            className="font-semibold text-gray-700">
-            카메라 테스트
-          </Text>
-        </View>
-      </TouchableOpacity>
+    <View className="space-y-2">
       <TouchableOpacity
         onPress={() => navigation.navigate('Schedule')}
         className="bg-orange-100 p-4 rounded-xl space-y-2">
