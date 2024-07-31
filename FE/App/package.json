@@ -12,6 +12,7 @@
   "dependencies": {
     "@babel/preset-env": "^7.24.8",
     "@babel/regjsgen": "^0.8.0",
+    "@react-native-async-storage/async-storage": "^1.24.0",
     "@react-navigation/bottom-tabs": "^6.3.2",
     "@react-navigation/drawer": "^6.4.3",
     "@react-navigation/native": "^6.0.11",

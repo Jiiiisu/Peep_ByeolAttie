@@ -32,7 +32,7 @@ export default function WelcomeScreen() {
       </View>
       <TouchableOpacity
         className="bg-orange-default mx-5 p-4 rounded-2xl"
-        onPress={() => navigation.navigate('Home')}
+        onPress={() => navigation.replace('Home')}
         activeOpacity={0.7}>
         <Text
           style={{fontSize: wp(6)}}
