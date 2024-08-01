@@ -142,6 +142,7 @@ android {
         versionCode 1
         versionName "1.0"
         buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+        vectorDrawables.useSupportLibrary = true
 
         if (isNewArchitectureEnabled()) {
             // We configure the NDK build only if you decide to opt-in for the New Architecture.
@@ -255,18 +256,29 @@ android {
 
         }
     }
+    packagingOptions {
+        pickFirst 'lib/arm64-v8a/libfbjni.so'
+        pickFirst 'lib/armeabi-v7a/libfbjni.so'
+        pickFirst 'lib/x86/libfbjni.so'
+        pickFirst 'lib/x86_64/libfbjni.so'
+        pickFirst 'lib/arm64-v8a/libc++_shared.so'
+        pickFirst 'lib/armeabi-v7a/libc++_shared.so'
+        pickFirst 'lib/x86/libc++_shared.so'
+        pickFirst 'lib/x86_64/libc++_shared.so'
+    }
 }
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
 
     //noinspection GradleDynamicVersion
-    implementation "com.facebook.react:react-native:+"  // From node_modules
-
+    //implementation "com.facebook.react:react-native:+"  // From node_modules
+    implementation "com.facebook.react:react-native:0.70.1"
     implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.0.0"
 
     //react-native-voice
-    implementation project(':react-native-voice')
+    implementation project(':@react-native-voice_voice')
+    //implementation project(':react-native-voice')
     //react-native-tts
     implementation project(':react-native-tts')
 
@@ -292,7 +304,7 @@ dependencies {
         implementation jscFlavor
     }
 
-    implementation project(':lottie-react-native')
+    //implementation project(':lottie-react-native')
     implementation 'com.facebook.fresco:fresco:1.+'
     implementation 'com.facebook.fresco:animated-gif:1.+'
 }

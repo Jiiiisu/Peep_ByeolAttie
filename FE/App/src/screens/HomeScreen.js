@@ -13,7 +13,7 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import Voice from 'react-native-voice';
+import Voice from '@react-native-voice/voice';
 import Tts from 'react-native-tts';
 import Features from '../components/Features';
 import {dummyMessages} from '../constants';
