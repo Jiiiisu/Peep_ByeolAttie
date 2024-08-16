@@ -1,0 +1,81 @@
+{
+	"images": [
+		{
+			"file_name": "K-012865_0_0_0_0_60_000_200.png",
+			"width": 976,
+			"height": 1280,
+			"imgfile": "K-012865_0_0_0_0_60_000_200.png",
+			"drug_N": "K-012865",
+			"drug_S": "정상알약",
+			"back_color": "검은색 배경",
+			"drug_dir": "앞면",
+			"light_color": "전구색",
+			"camera_la": 60,
+			"camera_lo": 0,
+			"size": 200,
+			"item_seq": "200300623",
+			"leng_long": "14.5",
+			"leng_short": "8.4",
+			"thick": "6.2",
+			"id": 1,
+			"dl_idx": "12864",
+			"dl_mapping_code": "K-012865",
+			"dl_name": "알비정400mg/PTP",
+			"dl_name_en": "Albi Tab. 400mg",
+			"img_key": "http://connectdi.com/design/img/drug/1Mp3yEn23rq.jpg",
+			"dl_material": "알벤다졸",
+			"dl_material_en": "Albendazole",
+			"dl_custom_shape": "정제, 저작정",
+			"dl_company": "알리코제약(주)",
+			"dl_company_en": "Arlico",
+			"di_company_mf": "(주)한국파비스제약",
+			"di_company_mf_en": "Pharvis Korea",
+			"di_item_permit_date": "20030909",
+			"di_class_no": "[06420]구충제",
+			"di_etc_otc_code": "일반의약품",
+			"di_edi_code": "656001210",
+			"chart": "[내수용]연한 주황색의 장방형 필름코팅정[수출용]연한 오렌지색의 장방형 필름코팅정",
+			"drug_shape": "장방형",
+			"print_front": "A분할선L",
+			"print_back": "B Z",
+			"color_class1": "주황",
+			"color_class2": "",
+			"line_front": "-",
+			"line_back": "",
+			"img_regist_ts": "20180822",
+			"form_code_name": "필름코팅정",
+			"mark_code_front_anal": "",
+			"mark_code_back_anal": "",
+			"mark_code_front_img": "",
+			"mark_code_back_img": "",
+			"mark_code_front": "",
+			"mark_code_back": "",
+			"change_date": "20200402"
+		}
+	],
+	"type": "instances",
+	"annotations": [
+		{
+			"area": 88704,
+			"iscrowd": 0,
+			"bbox": [
+				314,
+				499,
+				352,
+				252
+			],
+			"category_id": 1,
+			"ignore": 0,
+			"segmentation": [],
+			"id": 1,
+			"image_id": 1
+		}
+	],
+	"categories": [
+		{
+			"supercategory": "pill",
+			"id": 1,
+			"name": "Drug"
+		}
+	]
+}
