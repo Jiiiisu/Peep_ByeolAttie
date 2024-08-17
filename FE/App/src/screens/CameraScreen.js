@@ -8,6 +8,7 @@ import {
 } from 'react-native-responsive-screen';
 import {useNavigation} from '@react-navigation/native';
 import {Shadow} from 'react-native-shadow-2';
+import Back from '../../assets/images/Back.svg';
 
 export default function CameraScreen() {
   const navigation = useNavigation();
@@ -43,19 +44,13 @@ export default function CameraScreen() {
   function renderHeader() {
     return (
       <View
-        className="flex-row py-4 items-center bg-white z-10"
+        className="flex-row p-4 items-center justify-between z-10"
         style={{
           paddingHorizontal: 10,
         }}>
-        {/* Close Button */}
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={{fontSize: wp(4.8)}}>X</Text>
+          <Back />
         </TouchableOpacity>
-
-        {/* Title */}
-        <Text className="flex-1 mx-5 font-bold" style={{fontSize: wp(4.8)}}>
-          Camera
-        </Text>
       </View>
     );
   }
