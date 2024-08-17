@@ -7,6 +7,8 @@ import ScheduleScreen from '../screens/ScheduleScreen';
 import HelpScreen from '../screens/HelpScreen';
 import SettingScreen from '../screens/SettingScreen';
 import CameraScreen from '../screens/CameraScreen';
+import InputScreen1 from '../screens/InputScreen1';
+import InputScreen2 from '../screens/InputScreen2';
 
 const Stack = createStackNavigator();
 
@@ -37,6 +39,8 @@ function AppNavigation() {
       )}
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Schedule" component={ScheduleScreen} />
+      <Stack.Screen name="Input1" component={InputScreen1} />
+      <Stack.Screen name="Input2" component={InputScreen2} />
       <Stack.Screen name="Help" component={HelpScreen} />
       <Stack.Screen name="Setting" component={SettingScreen} />
       <Stack.Screen name="Camera" component={CameraScreen} />
