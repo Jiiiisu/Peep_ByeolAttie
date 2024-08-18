@@ -28,6 +28,7 @@ export default function HomeScreen() {
   const [recording, setRecording] = useState(false);
   const [results, setResults] = useState([]);
   const [assistantResponse, setText] = useState('');
+  const [isTtsSpeaking, setIsTtsSpeaking] = useState(false);
 
   useEffect(() => {
     const initVoice = async () => {
@@ -61,13 +62,20 @@ export default function HomeScreen() {
     // 퍼미션 요청
     requestMicrophonePermission();
 
-    Tts.addEventListener('tts-start', event => console.log('TTS start', event));
-    Tts.addEventListener('tts-finish', event =>
-      console.log('TTS finish', event),
-    );
-    Tts.addEventListener('tts-cancel', event =>
-      console.log('TTS cancel', event),
-    );
+    Tts.addEventListener('tts-start', event => {
+      console.log('TTS start', event);
+      setIsTtsSpeaking(true);
+    });
+    Tts.addEventListener('tts-finish', event => {
+      console.log('TTS finish', event);
+      setIsTtsSpeaking(false);
+      setRecording(false);  // TTS가 끝나면 recording 상태를 false로 설정
+    });
+    Tts.addEventListener('tts-cancel', event => {
+      console.log('TTS cancel', event);
+      setIsTtsSpeaking(false);
+      setRecording(false);  // TTS가 취소되어도 recording 상태를 false로 설정
+    });
 
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
@@ -124,7 +132,7 @@ export default function HomeScreen() {
         // 여기서 서버로 메시지를 보내고 응답을 받는 로직을 추가해야 합니다.
         // 예시로 더미 응답을 사용합니다.
         assistantResponse =
-          '음성 인식 결과를 받았습니다. 이것은 예시 응답입니다.';
+          '음성 인식 결과를 받았습니다.';
       }
 
       // 응답을 메시지에 추가하고 음성으로 출력
@@ -147,9 +155,12 @@ export default function HomeScreen() {
           ...prevMessages,
           {role: 'system', content: 'TTS 오류가 발생했습니다.'},
         ]);
+        setIsTtsSpeaking(false);  // TTS 오류 시 상태 업데이트
+        setRecording(false);  // TTS 오류 시에도 recording 상태를 false로 설정
       });
     } else {
       console.log('No speech results');
+      setRecording(false);  // 음성 인식 결과 처리 후 recording 상태를 false로 설정
       setMessages(prevMessages => [
         ...prevMessages,
         {
@@ -301,15 +312,16 @@ export default function HomeScreen() {
           </View>
         )}
         <View className="flex justify-center items-center mb-10 absolute bottom-0 left-0 right-0">
-          {recording ? (
-            <TouchableOpacity onPress={stopListening}>
-              <Stop height={hp(10)} />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={startListening}>
-              <Recording height={hp(10)} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            onPress={recording ? stopListening : startListening} 
+            disabled={isTtsSpeaking}
+          >
+            {recording ? (
+              <Stop height={hp(10)} opacity={isTtsSpeaking ? 0.5 : 1} />
+            ) : (
+              <Recording height={hp(10)} opacity={isTtsSpeaking ? 0.5 : 1} />
+            )}
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </View>

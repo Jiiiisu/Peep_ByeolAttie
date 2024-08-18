@@ -21,13 +21,19 @@
             android:value="com.reactnavcc"/>
       <meta-data  android:name="com.dieam.reactnativepushnotification.notification_channel_description"
                   android:value="com.reactnavcc"/>
-      <receiver android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationPublisher" />
-      <receiver android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationBootEventReceiver">
+      <receiver 
+          android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationPublisher" 
+          android:exported="false" />
+      <receiver 
+          android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationBootEventReceiver"
+          android:exported="false">
           <intent-filter>
               <action android:name="android.intent.action.BOOT_COMPLETED" />
           </intent-filter>
       </receiver>
-      <service android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationRegistrationService"/>
+      <service 
+          android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationRegistrationService"
+          android:exported="false" />
       <service
           android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationListenerService"
           android:exported="false" >
