@@ -6,6 +6,7 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import {useNavigation} from '@react-navigation/native';
+import { handleScheduleVoice } from '../screens/ScheduleVoiceHandler';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -17,6 +18,7 @@ export default function ScheduleScreen() {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchDrugList();
+      handleScheduleVoice(navigation);
     });
 
     return unsubscribe;

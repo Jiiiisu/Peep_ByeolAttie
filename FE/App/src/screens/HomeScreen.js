@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   View,
   Image,
@@ -6,6 +6,8 @@ import {
   PermissionsAndroid,
   Platform,
   Alert,
+  BackHandler,
+  ToastAndroid,
 } from 'react-native';
 import {ScrollView, TouchableOpacity} from 'react-native-gesture-handler';
 import {
@@ -17,73 +19,77 @@ import Voice from '@react-native-voice/voice';
 import Tts from 'react-native-tts';
 import Features from '../components/Features';
 import {dummyMessages} from '../constants';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect, useRoute} from '@react-navigation/native';
 import Logo from '../../assets/images/Logo.svg';
 import Recording from '../../assets/images/Recording.svg';
 import Stop from '../../assets/images/Stop.svg';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const [messages, setMessages] = useState([]);
   const [recording, setRecording] = useState(false);
   const [results, setResults] = useState([]);
   const [assistantResponse, setText] = useState('');
   const [isTtsSpeaking, setIsTtsSpeaking] = useState(false);
+  const voiceInitialized = useRef(false);
+  const [showFeatures, setShowFeatures] = useState(true);
+
+  const initVoice = useCallback(async () => {
+    try {
+      await Voice.destroy();
+      await Voice.removeAllListeners();
+      await Voice.isAvailable();
+      Voice.onSpeechStart = onSpeechStart;
+      Voice.onSpeechEnd = onSpeechEnd;
+      Voice.onSpeechResults = onSpeechResults;
+      Voice.onSpeechError = onSpeechError;
+      voiceInitialized.current = true;
+    } catch (e) {
+      console.error('Failed to initialize Voice module', e);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      const resetVoice = route.params?.resetVoice ?? false;
+      if (resetVoice) {
+        initVoice();
+        setShowFeatures(true);
+        setMessages([]);
+        // 파라미터를 사용한 후에는 초기화해주는 것이 좋습니다.
+        navigation.setParams({ resetVoice: undefined });
+      }
+
+      const onBackPress = () => {
+        if (messages.length > 0) {
+          resetHomeScreen();
+          return true;
+        }
+        return false;
+      };
+
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [route.params, initVoice, navigation])
+  );
+
+  const resetHomeScreen = () => {
+    setShowFeatures(true);
+    setMessages([]);
+    setRecording(false);
+    setResults([]);
+  };
 
   useEffect(() => {
-    const initVoice = async () => {
-      try {
-        await Voice.isAvailable();
-        Voice.onSpeechResults = onSpeechResults;
-        Voice.onSpeechError = onSpeechError;
-        // 다른 이벤트 리스너들...
-      } catch (e) {
-        console.error('Failed to initialize Voice module', e);
-      }
-    };
     initVoice();
-
-    // TTS 초기화
-    Tts.setDefaultLanguage('ko-KR');
-    Tts.setDefaultVoice('ko-KR-language');
-
-    Tts.getInitStatus().then(
-      () => {
-        console.log('TTS engine initialized');
-      },
-      err => {
-        if (err.code === 'no_engine') {
-          console.log('No TTS engine installed');
-        } else {
-          console.log('TTS initialization failed');
-        }
-      },
-    );
-    // 퍼미션 요청
     requestMicrophonePermission();
-
-    Tts.addEventListener('tts-start', event => {
-      console.log('TTS start', event);
-      setIsTtsSpeaking(true);
-    });
-    Tts.addEventListener('tts-finish', event => {
-      console.log('TTS finish', event);
-      setIsTtsSpeaking(false);
-      setRecording(false);  // TTS가 끝나면 recording 상태를 false로 설정
-    });
-    Tts.addEventListener('tts-cancel', event => {
-      console.log('TTS cancel', event);
-      setIsTtsSpeaking(false);
-      setRecording(false);  // TTS가 취소되어도 recording 상태를 false로 설정
-    });
 
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
-      Tts.removeAllListeners('tts-start');
-      Tts.removeAllListeners('tts-finish');
-      Tts.removeAllListeners('tts-cancel');
     };
-  }, []);
+  }, [initVoice]);
 
   const requestMicrophonePermission = async () => {
     if (Platform.OS === 'android') {
@@ -110,13 +116,22 @@ export default function HomeScreen() {
     }
   };
 
-  const onSpeechResults = e => {
+  const onSpeechStart = (e) => {
+    console.log('onSpeechStart', e);
+    setRecording(true);
+  };
+
+  const onSpeechEnd = (e) => {
+    console.log('onSpeechEnd', e);
+    setRecording(false);
+  };
+
+  const onSpeechResults = (e) => {
     console.log('onSpeechResults: ', e);
     // 음성 인식 결과를 메시지에 추가
     if (e && e.value && Array.isArray(e.value) && e.value.length > 0) {
       setResults(e.value);
       const userMessage = e.value[0];
-      //setMessages([...messages, {role: 'user', content: e.value[0]}]);
       setMessages(prevMessages => [
         ...prevMessages,
         {role: 'user', content: userMessage},
@@ -127,8 +142,30 @@ export default function HomeScreen() {
       // '카메라' 음성 명령 처리
       if (userMessage.toLowerCase().includes('카메라')) {
         assistantResponse = '카메라를 켭니다';
+        stopListening();
         navigation.navigate('Camera');
-      } else {
+      }
+      else if (userMessage.toLowerCase().includes('일정')){
+        assistantResponse = '일정 관리 페이지로 이동합니다';
+        stopListening();
+        setMessages(prevMessages => [
+          ...prevMessages,
+          {role: 'assistant', content: assistantResponse},
+        ]);
+        Tts.speak(assistantResponse, {
+          iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
+          androidParams: {
+            KEY_PARAM_PAN: -1,
+            KEY_PARAM_VOLUME: 1.0,
+            KEY_PARAM_STREAM: 'STREAM_MUSIC',
+          },
+        });
+        setTimeout(() => {
+          navigation.navigate('Schedule');
+          //handleScheduleVoice(navigation);
+        }, 2000); // TTS가 끝나기를 기다린 후 화면 전환
+        return; // 여기서 함수 종료
+      }else {
         // 여기서 서버로 메시지를 보내고 응답을 받는 로직을 추가해야 합니다.
         // 예시로 더미 응답을 사용합니다.
         assistantResponse =
@@ -187,7 +224,10 @@ export default function HomeScreen() {
     console.error('Error message:', e.error.message);
     if (e.error.code === '5') {
       console.log('Client side error. Restarting voice recognition.');
-      startListening(); // 자동으로 다시 시작
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('음성 인식 중 문제가 발생했습니다. 다시 시도합니다.', ToastAndroid.SHORT);
+      }
+      setTimeout(startListening, 1000);// 자동으로 다시 시작
     }
     setMessages(prevMessages => [
       ...prevMessages,
@@ -207,6 +247,7 @@ export default function HomeScreen() {
       });
       //await Voice.start('en-US');
       setRecording(true);
+      setShowFeatures(false);
     } catch (e) {
       console.error('startListening error: ', e);
     }
