@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel>
+      <module name="ReactNavCC.@react-native-camera-roll_camera-roll" target="17" />
+      <module name="ReactNavCC.react-native-camera" target="17" />
+      <module name="ReactNavCC.react-native-voice" target="17" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

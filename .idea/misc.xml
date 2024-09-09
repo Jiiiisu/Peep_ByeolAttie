@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Black">
+    <option name="sdkName" value="Python 3.9" />
+  </component>
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
+  <component name="FrameworkDetectionExcludesConfiguration">
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/@react-native-async-storage/async-storage/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/@react-native-camera-roll/camera-roll/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/@react-native-voice/voice/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-camera/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-fs/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-gesture-handler/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-gradle-plugin" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-linear-gradient/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-push-notification/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-reanimated/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-safe-area-context/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-screens/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-svg/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-tts/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-vector-icons/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-vision-camera/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-voice/android" />
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_21" project-jdk-name="Python 3.9" project-jdk-type="Python SDK">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
+</project>

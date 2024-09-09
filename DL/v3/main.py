@@ -1,17 +1,17 @@
-from keras.models import load_model  
+from keras.models import load_model
 from PIL import Image, ImageOps  
 import numpy as np
 
 np.set_printoptions(suppress=True)
 
-model = load_model("keras_Model.h5", compile=False)
+model = load_model("keras_model.h5", compile=False)
 
-class_names = open("labels.txt", "r").readlines()
+class_names = open("../v1/labels.txt", "r").readlines()
 
 data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
 
 # 이미지 경로 나중에 지정
-image = Image.open("<IMAGE_PATH>").convert("RGB")
+image = Image.open("E:\Peep_ByeolAttie\DL\v3\Image").convert("RGB")
 
 size = (224, 224)
 image = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
@@ -29,3 +29,4 @@ confidence_score = prediction[0][index]
 
 print("Class:", class_name[2:], end="")
 print("Confidence Score:", confidence_score)
+
