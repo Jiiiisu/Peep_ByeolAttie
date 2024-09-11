@@ -10,6 +10,8 @@ import {useNavigation} from '@react-navigation/native';
 import {Shadow} from 'react-native-shadow-2';
 import Back from '../../assets/images/Back.svg';
 
+import RNFS from 'react-native-fs'; // react-native-fs 임포트
+
 export default function CameraScreen() {
   const navigation = useNavigation();
 
@@ -28,15 +30,66 @@ export default function CameraScreen() {
   const requestCameraPermission = React.useCallback(async () => {
     const Permission = await Camera.requestCameraPermission();
     console.log(Permission);
-    if (Permission === 'denied') await Linking.openSettings();
+    if (Permission === 'denied') {
+      await Linking.openSettings();
+    }
   }, []);
+
+  // 이미지를 서버로 옮기는 함수
+  /*
+  const sendImageToServer = async imagePath => {
+    const formData = new FormData();
+    formData.append('image', {
+      uri: `file://${imagePath}`,
+      name: '1.png',
+      type: 'image/png',
+    });
+
+    try {
+      const response = await fetch('http://10.0.2.2:3000/predict', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const result = await response.json();
+      console.log('Predicted class:', result.predictedClass);
+    } catch (error) {
+      console.error('Error sending image to server:', error);
+    }
+  };
+   */
 
   const takePicture = async () => {
     if (camera != null) {
       const photo = await camera.current.takePhoto();
-      setImageData(photo.path);
-      setTakePhotoClicked(false);
-      console.log(photo.path);
+      const imagePath = photo.path;
+
+      // 사진을 특정 폴더에 저장하는 로직 추가
+      const destinationPath = `${RNFS.DocumentDirectoryPath}/images/1.png`;
+      const targetPath = `${RNFS.DocumentDirectoryPath}/your_project_folder/images/1.png`;
+
+
+      try {
+        // 디렉토리 생성(존재하지 않으면)
+        const dirPath = `${RNFS.DocumentDirectoryPath}/images`;
+        if (!(await RNFS.exists(dirPath))) {
+          await RNFS.mkdir(dirPath);
+        }
+
+        // 사진 이동
+        await RNFS.moveFile(imagePath, destinationPath);
+        setImageData(destinationPath);
+        setTakePhotoClicked(false);
+
+        // 이미지 전송
+        await sendImageToServer(imagePath);
+        console.log('사진 저장됨:', destinationPath);
+      } catch (error) {
+        console.log('사진 저장 중 오류 발생:', error);
+      }
     }
   };
 
@@ -57,7 +110,7 @@ export default function CameraScreen() {
 
   function renderCamera() {
     if (device == null) {
-      return <View className="flex-1"></View>;
+      return <View className="flex-1" />;
     } else {
       return (
         <View className="flex-1">
