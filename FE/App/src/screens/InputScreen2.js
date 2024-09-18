@@ -101,14 +101,19 @@ export default function InputScreen2({route}) {
           if (notificationTime > currentDate) {
             PushNotification.localNotificationSchedule({
               channelId: 'schedule-channel',
-              id,
               title: `약 복용 알림: ${drugInfo.name}`,
               message: `약을 복용할 시간입니다: ${time}`,
               date: notificationTime,
               allowWhileIdle: true,
               repeatType: 'week',
+              userInfo: {
+                drugName: drugInfo.name,
+                dosage: drugInfo.dosage,
+                time: time,
+              },
             });
           }
+
           console.log(
             `알림 설정됨: ${drugInfo.name} - ${notificationTime} (오늘)`,
           );
@@ -119,12 +124,16 @@ export default function InputScreen2({route}) {
           );
           PushNotification.localNotificationSchedule({
             channelId: 'schedule-channel',
-            id,
             title: `약 복용 알림: ${drugInfo.name}`,
             message: `약을 복용할 시간입니다: ${time}`,
             date: notificationTime,
             allowWhileIdle: true,
             repeatType: 'week',
+            userInfo: {
+              drugName: drugInfo.name,
+              dosage: drugInfo.dosage,
+              time: time,
+            },
           });
           console.log(
             `알림 설정됨: ${drugInfo.name} - ${notificationTime} (다음 ${day})`,

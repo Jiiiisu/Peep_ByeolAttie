@@ -1,6 +1,8 @@
 import React, {useState, useEffect} from 'react';
 import {createStackNavigator} from '@react-navigation/stack';
+import {useNavigation} from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import PushNotification from 'react-native-push-notification';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ScheduleScreen from '../screens/ScheduleScreen';
@@ -9,10 +11,12 @@ import SettingScreen from '../screens/SettingScreen';
 import CameraScreen from '../screens/CameraScreen';
 import InputScreen1 from '../screens/InputScreen1';
 import InputScreen2 from '../screens/InputScreen2';
+import AlarmScreen from '../screens/AlarmScreen';
 
 const Stack = createStackNavigator();
 
 function AppNavigation() {
+  const navigation = useNavigation();
   const [isFirstLaunch, setIsFirstLaunch] = useState(null);
 
   useEffect(() => {
@@ -23,6 +27,25 @@ function AppNavigation() {
       } else {
         setIsFirstLaunch(false);
       }
+    });
+    PushNotification.configure({
+      onNotification: function (notification) {
+        console.log('NOTIFICATION:', notification);
+
+        if (notification.userInteraction) {
+          // notification.data에서 약 정보 가져오기
+          const drugInfo = notification.data || {};
+
+          // TestScreen으로 약 정보를 전달
+          navigation.navigate('Alarm', {
+            drugName: drugInfo.drugName,
+            dosage: drugInfo.dosage,
+            time: drugInfo.time,
+          });
+        }
+      },
+
+      requestPermissions: Platform.OS === 'ios',
     });
   }, []);
 
@@ -44,6 +67,7 @@ function AppNavigation() {
       <Stack.Screen name="Help" component={HelpScreen} />
       <Stack.Screen name="Setting" component={SettingScreen} />
       <Stack.Screen name="Camera" component={CameraScreen} />
+      <Stack.Screen name="Alarm" component={AlarmScreen} />
     </Stack.Navigator>
   );
 }
