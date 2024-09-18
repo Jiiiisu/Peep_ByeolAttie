@@ -3,8 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Button,
-  Alert,
   TouchableOpacity,
   TouchableWithoutFeedback,
   Modal,
@@ -13,11 +11,12 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import WheelPicker from 'react-native-wheely';
 import {useNavigation} from '@react-navigation/native';
+import PushNotification from 'react-native-push-notification';
 import Delete from '../../assets/images/Close.svg';
 import Back from '../../assets/images/Back.svg';
 import Close from '../../assets/images/Close.svg';
 
-const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
+const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 export default function InputScreen2({route}) {
   const navigation = useNavigation();
@@ -27,10 +26,15 @@ export default function InputScreen2({route}) {
   const [times, setTimes] = useState([]);
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedTime, setSelectedTime] = useState('09:00');
+  const [selectedTime, setSelectedTime] = useState('');
   const [selectedDays, setSelectedDays] = useState([]);
 
   useEffect(() => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    setSelectedTime(`${hours}:${minutes}`);
+
     if (route.params) {
       const {name, dosage, editItem} = route.params;
       setName(name);
@@ -42,7 +46,15 @@ export default function InputScreen2({route}) {
         setAdditionalInfo(additionalInfo);
       }
     }
+    createNotificationChannel(); // 채널 생성
   }, [route.params]);
+
+  const createNotificationChannel = () => {
+    PushNotification.createChannel({
+      channelId: 'schedule-channel',
+      channelName: 'Schedule Notifications',
+    });
+  };
 
   const handleSave = async () => {
     const drugInfo = {
@@ -64,10 +76,62 @@ export default function InputScreen2({route}) {
       }
 
       await AsyncStorage.setItem('drugList', JSON.stringify(drugList));
+      scheduleNotifications(drugInfo); // 알림 예약
       navigation.navigate('Schedule');
     } catch (error) {
       console.error('Error saving data:', error);
     }
+  };
+
+  const scheduleNotifications = drugInfo => {
+    const currentDate = new Date();
+
+    drugInfo.times.forEach(time => {
+      drugInfo.days.forEach(day => {
+        const notificationTime = new Date(currentDate);
+        notificationTime.setHours(parseInt(time.split(':')[0]));
+        notificationTime.setMinutes(parseInt(time.split(':')[1]));
+        notificationTime.setSeconds(0);
+
+        const dayIndex = DAYS.indexOf(day);
+        const todayIndex = currentDate.getDay(); // 0: 일, 1: 월 ...
+
+        // 오늘 날짜에 해당 요일이면 알림 시간에 오늘 날짜를 설정
+        if (dayIndex === todayIndex) {
+          if (notificationTime > currentDate) {
+            PushNotification.localNotificationSchedule({
+              channelId: 'schedule-channel',
+              id,
+              title: `약 복용 알림: ${drugInfo.name}`,
+              message: `약을 복용할 시간입니다: ${time}`,
+              date: notificationTime,
+              allowWhileIdle: true,
+              repeatType: 'week',
+            });
+          }
+          console.log(
+            `알림 설정됨: ${drugInfo.name} - ${notificationTime} (오늘)`,
+          );
+        } else {
+          // 오늘 날짜가 아닌 경우, 다음 해당 요일로 설정
+          notificationTime.setDate(
+            notificationTime.getDate() + ((dayIndex - todayIndex + 7) % 7),
+          );
+          PushNotification.localNotificationSchedule({
+            channelId: 'schedule-channel',
+            id,
+            title: `약 복용 알림: ${drugInfo.name}`,
+            message: `약을 복용할 시간입니다: ${time}`,
+            date: notificationTime,
+            allowWhileIdle: true,
+            repeatType: 'week',
+          });
+          console.log(
+            `알림 설정됨: ${drugInfo.name} - ${notificationTime} (다음 ${day})`,
+          );
+        }
+      });
+    });
   };
 
   const handleAddTime = () => {
