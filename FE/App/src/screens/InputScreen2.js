@@ -12,6 +12,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import WheelPicker from 'react-native-wheely';
 import {useNavigation} from '@react-navigation/native';
 import PushNotification from 'react-native-push-notification';
+import Voice from '@react-native-voice/voice';
+import { speak } from './ScheduleVoiceHandler';
 import Delete from '../../assets/images/Close.svg';
 import Back from '../../assets/images/Back.svg';
 import Close from '../../assets/images/Close.svg';
@@ -28,6 +30,8 @@ export default function InputScreen2({route}) {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedDays, setSelectedDays] = useState([]);
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const [currentStep, setCurrentStep] = useState('days');
 
   useEffect(() => {
     const now = new Date();
@@ -36,9 +40,10 @@ export default function InputScreen2({route}) {
     setSelectedTime(`${hours}:${minutes}`);
 
     if (route.params) {
-      const {name, dosage, editItem} = route.params;
+      const { name, dosage, editItem, isVoiceMode: voiceMode } = route.params;
       setName(name);
       setDosage(dosage);
+      setIsVoiceMode(voiceMode);
       if (editItem) {
         const {times, days, additionalInfo} = editItem;
         setTimes(times);
@@ -47,13 +52,141 @@ export default function InputScreen2({route}) {
       }
     }
     createNotificationChannel(); // 채널 생성
+    initVoice();
+
+    if (isVoiceMode) {
+      startVoiceInput();
+    }
   }, [route.params]);
+
+  const initVoice = async () => {
+    try {
+      await Voice.destroy();
+      await Voice.removeAllListeners();
+      Voice.onSpeechResults = onSpeechResults;
+      Voice.onSpeechError = onSpeechError;
+    } catch (e) {
+      console.error('Failed to init Voice module', e);
+    }
+  };
 
   const createNotificationChannel = () => {
     PushNotification.createChannel({
       channelId: 'schedule-channel',
       channelName: 'Schedule Notifications',
     });
+  };
+
+  const startVoiceInput = async () => {
+    if (currentStep === 'days') {
+      await speak('어떤 요일에 약을 복용하는지 말씀해 주세요. 예를 들어, 월요일 수요일 금요일');
+    } else if (currentStep === 'times') {
+      await speak('약을 복용하는 시간을 말씀해 주세요. 예를 들어 아침 8시, 저녁 7시');
+    } else if (currentStep === 'additionalInfo') {
+      await speak('추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항 등');
+    }
+    startListening();
+  };
+
+  const startListening = async () => {
+    try {
+      await Voice.start('ko-KR');
+    } catch (e) {
+      console.error('Failed to start voice recognition', e);
+    }
+  };
+
+  const stopListening = async () => {
+    try {
+      await Voice.stop();
+    } catch (e) {
+      console.error('Failed to stop voice recognition', e);
+    }
+  };
+
+  const onSpeechResults = (e) => {
+    if (e.value && e.value.length > 0) {
+      const result = e.value[0].toLowerCase();
+      handleVoiceInput(result);
+    }
+  };
+
+  const onSpeechError = (e) => {
+    console.error('Speech recognition error:', e);
+    speak('죄송합니다. 다시 한 번 말씀해 주세요.');
+    startListening();
+  };
+
+  const handleVoiceInput = (input) => {
+    switch (currentStep) {
+      case 'days':
+        handleDaysInput(input);
+        break;
+      case 'times':
+        handleTimesInput(input);
+        break;
+      case 'additionalInfo':
+        handleAdditionalInfoInput(input);
+        break;
+    }
+  };
+
+  const handleDaysInput = (input) => {
+    const recognizedDays = DAYS.filter(day => input.includes(day));
+    recognizedDays.forEach(day => toggleDay(day));
+    if (recognizedDays.length > 0) {
+      setCurrentStep('times');
+      startVoiceInput();
+    } else {
+      speak('인식된 요일이 없습니다. 다시 말씀해 주세요.');
+      startListening();
+    }
+  };
+
+  const handleTimesInput = (input) => {
+    const timeRegex = /(\d{1,2})시/g;
+    const matches = [...input.matchAll(timeRegex)];
+    const recognizedTimes = matches.map(match => `${match[1].padStart(2, '0')}:00`);
+    
+    if (recognizedTimes.length > 0) {
+      recognizedTimes.forEach(time => handleTimeSelect(time));
+      setCurrentStep('additionalInfo');
+      startVoiceInput();
+    } else {
+      speak('인식된 시간이 없습니다. 다시 말씀해 주세요.');
+      startListening();
+    }
+  };
+
+  const handleAdditionalInfoInput = (input) => {
+    setAdditionalInfo(input);
+    speak('입력이 완료되었습니다. 저장하시겠습니까? 예 또는 아니오로 대답해 주세요.');
+    setCurrentStep('confirmation');
+    startListening();
+  };
+
+  const handleConfirmation = (input) => {
+    if (input.includes('예') || input.includes('네')) {
+      handleSave();
+    } else if (input.includes('아니오') || input.includes('아니요')) {
+      speak('입력이 취소되었습니다. 처음부터 다시 시작합니다.');
+      resetInputs();
+      setCurrentStep('days');
+      startVoiceInput();
+    } else {
+      speak('예 또는 아니오로 대답해 주세요.');
+      startListening();
+    }
+  };
+
+  const resetInputs = () => {
+    setSelectedDays([]);
+    setTimes([]);
+    setAdditionalInfo('');
+  };
+
+  const resetVoiceState = () => {
+    setIsVoiceMode(false);
   };
 
   const handleSave = async () => {
@@ -77,9 +210,16 @@ export default function InputScreen2({route}) {
 
       await AsyncStorage.setItem('drugList', JSON.stringify(drugList));
       scheduleNotifications(drugInfo); // 알림 예약
+      if (isVoiceMode) {
+        speak('약 정보가 저장되었습니다. 홈 화면으로 돌아갑니다.');
+      }
       navigation.navigate('Schedule');
     } catch (error) {
       console.error('Error saving data:', error);
+      if (isVoiceMode) {
+        speak('저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
+        startVoiceInput();
+      }
     }
   };
 

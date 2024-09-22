@@ -11,7 +11,9 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
+import Voice from '@react-native-voice/voice';
+import { speak } from './ScheduleVoiceHandler';
 import Back from '../../assets/images/Back.svg';
 import Close from '../../assets/images/Close.svg';
 
@@ -22,8 +24,18 @@ export default function InputScreen({route}) {
 
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
 
   useEffect(() => {
+    if (route.params?.isVoiceMode) {
+      setIsVoiceMode(route.params.isVoiceMode);
+    }
+    if (route.params?.recognizedDrugName) {
+      setName(route.params.recognizedDrugName);
+    }
+    if (route.params?.recognizedDosage) {
+      setDosage(route.params.recognizedDosage);
+    }
     if (route.params?.editItem) {
       const {name, dosage} = route.params.editItem;
       setName(name);
@@ -34,7 +46,45 @@ export default function InputScreen({route}) {
         setDosage('');
       }
     }
-  }, [route.params?.editItem]);
+
+    if (isVoiceMode) {
+      startVoiceInput();
+    }
+  }, [route.params]);
+
+  const startVoiceInput = async () => {
+    await speak('입력된 정보를 확인해 주세요. 약 이름은 ' + name + '이고, 복용량은 1회 ' + dosage + '알입니다. 맞으면 예, 틀리면 아니오라고 말씀해 주세요.');
+    startListening();
+  };
+
+  const startListening = async () => {
+    try {
+      await Voice.start('ko-KR');
+    } catch (e) {
+      console.error('Failed to start voice recognition', e);
+    }
+  };
+
+  useEffect(() => {
+    Voice.onSpeechResults = onSpeechResults;
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
+
+  const onSpeechResults = (e) => {
+    if (e.value && e.value.length > 0) {
+      const result = e.value[0].toLowerCase();
+      if (result.includes('예') || result.includes('네')) {
+        handleNext();
+      } else if (result.includes('아니오') || result.includes('아니요')) {
+        speak('정보를 수정하려면 화면의 입력란을 터치하세요.');
+      } else {
+        speak('죄송합니다. 다시 한 번 말씀해 주세요.');
+        startListening();
+      }
+    }
+  };
 
   const handleNext = () => {
     navigation.navigate('Input2', {
@@ -42,6 +92,7 @@ export default function InputScreen({route}) {
       dosage,
       editItem: route.params?.editItem,
       editIndex: route.params?.editIndex,
+      isVoiceMode,
     });
   };
 

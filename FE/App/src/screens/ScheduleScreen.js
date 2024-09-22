@@ -6,24 +6,30 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import {handleScheduleVoice} from '../screens/ScheduleVoiceHandler';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
 export default function ScheduleScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
 
   const [drugList, setDrugList] = useState([]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchDrugList();
+      if (route.params?.startVoiceHandler) {
+        setTimeout(() => {
+          handleScheduleVoice(navigation, () => {});
+        }, 1000); // 화면 전환 후 약간의 지연을 두고 음성 안내 시작
+      }
       //handleScheduleVoice(navigation);
     });
 
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, route.params]);
 
   const fetchDrugList = async () => {
     try {

@@ -18,8 +18,8 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import Voice from '@react-native-voice/voice';
 import Tts from 'react-native-tts';
 import Features from '../components/Features';
-import {dummyMessages} from '../constants';
 import {useNavigation, useFocusEffect, useRoute} from '@react-navigation/native';
+import {initTts, speak } from './ScheduleVoiceHandler';
 import Logo from '../../assets/images/Logo.svg';
 import Recording from '../../assets/images/Recording.svg';
 import Stop from '../../assets/images/Stop.svg';
@@ -34,6 +34,13 @@ export default function HomeScreen() {
   const [isTtsSpeaking, setIsTtsSpeaking] = useState(false);
   const voiceInitialized = useRef(false);
   const [showFeatures, setShowFeatures] = useState(true);
+
+  const resetVoiceState = useCallback(() => {
+    setRecording(false);
+    setIsTtsSpeaking(false);
+    Tts.stop();
+    Voice.stop();
+  }, []);
 
   const initVoice = useCallback(async () => {
     try {
@@ -54,13 +61,11 @@ export default function HomeScreen() {
     useCallback(() => {
       const resetVoice = route.params?.resetVoice ?? false;
       if (resetVoice) {
-        initVoice();
-        setShowFeatures(true);
-        setMessages([]);
+        resetHomeScreen();
         // 파라미터를 사용한 후에는 초기화해주는 것이 좋습니다.
         navigation.setParams({ resetVoice: undefined });
       }
-
+      
       const onBackPress = () => {
         if (messages.length > 0) {
           resetHomeScreen();
@@ -71,23 +76,31 @@ export default function HomeScreen() {
 
       BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
-      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    }, [route.params, initVoice, navigation])
+      return () => {
+        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+        //resetVoiceState(); //계속 오류 5,7 발생해서 과부화 걸림
+      };
+    }, [route.params, navigation, messages.length, recording, isTtsSpeaking, resetHomeScreen, resetVoiceState])
   );
 
-  const resetHomeScreen = () => {
+  const resetHomeScreen = useCallback(() => {
     setShowFeatures(true);
     setMessages([]);
-    setRecording(false);
     setResults([]);
-  };
+    resetVoiceState();
+  }, [resetVoiceState]);
 
   useEffect(() => {
-    initVoice();
-    requestMicrophonePermission();
+    const setup = async () => {
+      await initVoice();
+      await requestMicrophonePermission();
+      await initTts(); //Tts 초기화
+    };
+    setup();
 
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
+      Tts.stop();
     };
   }, [initVoice]);
 
@@ -126,103 +139,9 @@ export default function HomeScreen() {
     setRecording(false);
   };
 
-  const onSpeechResults = (e) => {
-    console.log('onSpeechResults: ', e);
-    // 음성 인식 결과를 메시지에 추가
-    if (e && e.value && Array.isArray(e.value) && e.value.length > 0) {
-      setResults(e.value);
-      const userMessage = e.value[0];
-      setMessages(prevMessages => [
-        ...prevMessages,
-        {role: 'user', content: userMessage},
-      ]);
-
-      let assistantResponse;
-
-      // '카메라' 음성 명령 처리
-      if (userMessage.toLowerCase().includes('카메라')) {
-        assistantResponse = '카메라를 켭니다';
-        stopListening();
-        navigation.navigate('Camera');
-      }
-      else if (userMessage.toLowerCase().includes('일정')){
-        assistantResponse = '일정 관리 페이지로 이동합니다';
-        stopListening();
-        setMessages(prevMessages => [
-          ...prevMessages,
-          {role: 'assistant', content: assistantResponse},
-        ]);
-        Tts.speak(assistantResponse, {
-          iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
-          androidParams: {
-            KEY_PARAM_PAN: -1,
-            KEY_PARAM_VOLUME: 1.0,
-            KEY_PARAM_STREAM: 'STREAM_MUSIC',
-          },
-        });
-        setTimeout(() => {
-          navigation.navigate('Schedule');
-          //handleScheduleVoice(navigation);
-        }, 2000); // TTS가 끝나기를 기다린 후 화면 전환
-        return; // 여기서 함수 종료
-      }else {
-        // 여기서 서버로 메시지를 보내고 응답을 받는 로직을 추가해야 합니다.
-        // 예시로 더미 응답을 사용합니다.
-        assistantResponse =
-          '음성 인식 결과를 받았습니다.';
-      }
-
-      // 응답을 메시지에 추가하고 음성으로 출력
-      setMessages(prevMessages => [
-        ...prevMessages,
-        //{role: 'user', content: userMessage},
-        {role: 'assistant', content: assistantResponse},
-      ]);
-
-      Tts.speak(assistantResponse, {
-        iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
-        androidParams: {
-          KEY_PARAM_PAN: -1,
-          KEY_PARAM_VOLUME: 1.0,
-          KEY_PARAM_STREAM: 'STREAM_MUSIC',
-        },
-      }).catch(error => {
-        console.error('TTS error:', error);
-        setMessages(prevMessages => [
-          ...prevMessages,
-          {role: 'system', content: 'TTS 오류가 발생했습니다.'},
-        ]);
-        setIsTtsSpeaking(false);  // TTS 오류 시 상태 업데이트
-        setRecording(false);  // TTS 오류 시에도 recording 상태를 false로 설정
-      });
-    } else {
-      console.log('No speech results');
-      setRecording(false);  // 음성 인식 결과 처리 후 recording 상태를 false로 설정
-      setMessages(prevMessages => [
-        ...prevMessages,
-        {
-          role: 'system',
-          content: '음성이 감지되지 않았습니다. 다시 시도해주세요.',
-        },
-      ]);
-      Tts.speak('알아들을 수 없습니다', {
-        iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
-        androidParams: {
-          KEY_PARAM_PAN: -1,
-          KEY_PARAM_VOLUME: 1.0,
-          KEY_PARAM_STREAM: 'STREAM_MUSIC',
-        },
-      }).catch(error => {
-        console.error('TTS error:', error);
-      });
-    }
-  };
-
   const onSpeechError = e => {
     console.error('Speech recognition error:', e);
-    console.error('Error code:', e.error.code);
-    console.error('Error message:', e.error.message);
-    if (e.error.code === '5') {
+    if (e.error.code === '5' || e.error.code === '7') {
       console.log('Client side error. Restarting voice recognition.');
       if (Platform.OS === 'android') {
         ToastAndroid.show('음성 인식 중 문제가 발생했습니다. 다시 시도합니다.', ToastAndroid.SHORT);
@@ -234,9 +153,65 @@ export default function HomeScreen() {
       {role: 'system', content: `Error: ${e.error.message}`},
     ]);
     setRecording(false); // 에러 발생 시 recording 상태 리셋
-    Alert.alert('Speech Recognition Error', `Error: ${e.error.message}`);
+    //Alert.alert('Speech Recognition Error', `Error: ${e.error.message}`); //확인창 팝업해서 일일이 클릭해야 해서 제외함
   };
 
+  const onSpeechResults = async (e) => {
+    console.log('onSpeechResults: ', e);
+    // 음성 인식 결과를 메시지에 추가
+    //if (e && e.value && Array.isArray(e.value) && e.value.length > 0) {
+    if (e.value && e.value.length > 0) {
+      setResults(e.value);
+      const userMessage = e.value[0].toLowerCase();
+      setMessages(prevMessages => [
+        ...prevMessages,
+        {role: 'user', content: userMessage},
+      ]);
+
+      let assistantResponse;
+
+      // '카메라' 음성 명령 처리
+      if (userMessage.includes('카메라')) {
+        assistantResponse = '카메라를 켭니다';
+        await stopListening();
+        navigation.navigate('Camera');
+      }
+      else if (userMessage.includes('일정')){
+        assistantResponse = '일정 관리 페이지로 이동합니다';
+        await stopListening();
+        setMessages(prevMessages => [
+          ...prevMessages,
+          {role: 'assistant', content: assistantResponse},
+        ]);
+        try {
+          await speak(assistantResponse);
+          await Voice.destroy();  // Voice 모듈을 완전히 정지
+          navigation.navigate('Schedule', { startVoiceHandler: true });
+          //handleScheduleVoice(navigation, resetVoiceState);
+        } catch (error) {
+          console.error('TTS error:', error);
+        }
+        // setTimeout(() => {
+        //   //navigation.navigate('Schedule');
+        //   navigation.navigate('Schedule', { startVoiceHandler: true });
+        //   //handleScheduleVoice(navigation, resetVoiceState); //handleScheduleVoice 함수를 호출할 때 resetVoiceState 함수를 명시적으로 전달
+        // }, 2000); // TTS가 끝나기를 기다린 후 화면 전환
+        // //return; // 여기서 함수 종료
+      } else {
+        // 여기서 서버로 메시지를 보내고 응답을 받는 로직을 추가해야 합니다.
+        // 예시로 더미 응답을 사용합니다.
+        setMessages(prevMessages => [
+          ...prevMessages,
+          {role: 'assistant', content: assistantResponse},
+        ]);
+        await speak(assistantResponse);
+      }
+    } else {
+      console.log('No speech results');
+      resetVoiceState();
+    }
+  };
+  
   const startListening = async () => {
     try {
       console.log('Starting voice recognition');
@@ -257,6 +232,7 @@ export default function HomeScreen() {
     try {
       await Voice.stop();
       setRecording(false);
+      //resetVoiceState();
     } catch (e) {
       console.error('stopListening error: ', e);
     } finally {
