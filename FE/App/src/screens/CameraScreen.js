@@ -71,7 +71,6 @@ export default function CameraScreen() {
       const destinationPath = `${RNFS.DocumentDirectoryPath}/images/1.png`;
       const targetPath = `${RNFS.DocumentDirectoryPath}/your_project_folder/images/1.png`;
 
-
       try {
         // 디렉토리 생성(존재하지 않으면)
         const dirPath = `${RNFS.DocumentDirectoryPath}/images`;
@@ -85,7 +84,6 @@ export default function CameraScreen() {
         setTakePhotoClicked(false);
 
         // 이미지 전송
-        await sendImageToServer(imagePath);
         console.log('사진 저장됨:', destinationPath);
       } catch (error) {
         console.log('사진 저장 중 오류 발생:', error);
