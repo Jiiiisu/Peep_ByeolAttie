@@ -1,12 +1,13 @@
 import React, {useState, useEffect} from 'react';
 import {View, Text, FlatList, TouchableOpacity, Alert} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import PushNotification from 'react-native-push-notification';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import {useNavigation} from '@react-navigation/native';
-import { handleScheduleVoice } from '../screens/ScheduleVoiceHandler';
+import {handleScheduleVoice} from '../screens/ScheduleVoiceHandler';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -18,7 +19,7 @@ export default function ScheduleScreen() {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchDrugList();
-      handleScheduleVoice(navigation);
+      //handleScheduleVoice(navigation);
     });
 
     return unsubscribe;
@@ -45,6 +46,7 @@ export default function ScheduleScreen() {
         text: '확인',
         onPress: async () => {
           const newList = drugList.filter((_, i) => i !== index);
+
           setDrugList(newList);
           try {
             await AsyncStorage.setItem('drugList', JSON.stringify(newList));
