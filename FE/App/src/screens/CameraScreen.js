@@ -57,9 +57,9 @@ export default function CameraScreen() {
 
         // 이미지 전송
         console.log('사진 저장됨:', destinationPath);
-        navigation.navigate('SimplifiedImageClassification', {
+        /* navigation.navigate('ModelScreen', {
           imagePath: destinationPath,
-        });
+        }); */
       } catch (error) {
         console.log('사진 저장 중 오류 발생:', error);
       }
