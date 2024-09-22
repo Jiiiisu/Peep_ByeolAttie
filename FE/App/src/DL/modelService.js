@@ -1,31 +1,32 @@
-import * as tmImage from "@teachablemachine/image";
+import * as tmImage from '@teachablemachine/image';
 
-const URL = "./my_model/";
+const URL = './my_model/';
 
 let model = null;
 
 // 모델 로드 함수
 export const loadModel = async () => {
   if (!model) {
-    const modelURL = URL + "model.json";
-    const metadataURL = URL + "metadata.json";
+    const modelURL = URL + 'model.json';
+    const metadataURL = URL + 'metadata.json';
     model = await tmImage.load(modelURL, metadataURL);
   }
 };
 
 // 이미지 파일로 예측 수행 함수
-export const predictImage = async (file) => {
+export const predictImage = async file => {
   if (!model) {
     await loadModel();
   }
 
+  // eslint-disable-next-line no-undef
   const image = new Image();
   image.src = URL.createObjectURL(file);
 
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     image.onload = async () => {
       const predictions = await model.predict(image);
-      resolve(predictions);  // 예측 결과 반환
+      resolve(predictions); // 예측 결과 반환
     };
   });
 };
@@ -37,11 +38,11 @@ export const getImage = async () => {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    fileInput.onchange = async (event) => {
+    fileInput.onchange = async event => {
       const file = event.target.files[0];
       if (file) {
         const predictions = await predictImage(file);
-        console.log("Prediction Results:", predictions);
+        console.log('Prediction Results:', predictions);
       }
     };
     fileInput.click(); // 파일 선택 창을 열기
@@ -49,4 +50,3 @@ export const getImage = async () => {
     console.error('Error running model:', error);
   }
 };
-

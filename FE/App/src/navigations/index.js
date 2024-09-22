@@ -12,6 +12,8 @@ import CameraScreen from '../screens/CameraScreen';
 import InputScreen1 from '../screens/InputScreen1';
 import InputScreen2 from '../screens/InputScreen2';
 import AlarmScreen from '../screens/AlarmScreen';
+import SimplifiedImageClassification from '../../../../DL/v2/test';
+import {Platform} from 'react-native';
 
 const Stack = createStackNavigator();
 
@@ -68,6 +70,10 @@ function AppNavigation() {
       <Stack.Screen name="Setting" component={SettingScreen} />
       <Stack.Screen name="Camera" component={CameraScreen} />
       <Stack.Screen name="Alarm" component={AlarmScreen} />
+      <Stack.Screen
+        name="SimplifiedImageClassification"
+        component={SimplifiedImageClassification}
+      />
     </Stack.Navigator>
   );
 }
