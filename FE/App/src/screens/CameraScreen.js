@@ -42,7 +42,6 @@ export default function CameraScreen() {
 
       // 사진을 특정 폴더에 저장하는 로직 추가
       const destinationPath = `${RNFS.DocumentDirectoryPath}/images/1.png`;
-      const targetPath = `${RNFS.DocumentDirectoryPath}/your_project_folder/images/1.png`;
 
       try {
         // 디렉토리 생성(존재하지 않으면)
