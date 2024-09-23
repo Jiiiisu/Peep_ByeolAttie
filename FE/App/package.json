@@ -25,6 +25,7 @@
     "events": "^3.3.0",
     "expo-camera": "^15.0.16",
     "expo-gl": "^14.0.2",
+    "hash-sum": "^2.0.0",
     "lottie-ios": "3.1.8",
     "nativewind": "^2.0.11",
     "react": "18.0.0",

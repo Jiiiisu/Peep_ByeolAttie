@@ -13,7 +13,8 @@ import WheelPicker from 'react-native-wheely';
 import {useNavigation} from '@react-navigation/native';
 import PushNotification from 'react-native-push-notification';
 import Voice from '@react-native-voice/voice';
-import { speak } from './ScheduleVoiceHandler';
+import hashSum from 'hash-sum';
+import {speak} from './ScheduleVoiceHandler';
 import Delete from '../../assets/images/Close.svg';
 import Back from '../../assets/images/Back.svg';
 import Close from '../../assets/images/Close.svg';
@@ -40,7 +41,7 @@ export default function InputScreen2({route}) {
     setSelectedTime(`${hours}:${minutes}`);
 
     if (route.params) {
-      const { name, dosage, editItem, isVoiceMode: voiceMode } = route.params;
+      const {name, dosage, editItem, isVoiceMode: voiceMode} = route.params;
       setName(name);
       setDosage(dosage);
       setIsVoiceMode(voiceMode);
@@ -79,11 +80,17 @@ export default function InputScreen2({route}) {
 
   const startVoiceInput = async () => {
     if (currentStep === 'days') {
-      await speak('어떤 요일에 약을 복용하는지 말씀해 주세요. 예를 들어, 월요일 수요일 금요일');
+      await speak(
+        '어떤 요일에 약을 복용하는지 말씀해 주세요. 예를 들어, 월요일 수요일 금요일',
+      );
     } else if (currentStep === 'times') {
-      await speak('약을 복용하는 시간을 말씀해 주세요. 예를 들어 아침 8시, 저녁 7시');
+      await speak(
+        '약을 복용하는 시간을 말씀해 주세요. 예를 들어 아침 8시, 저녁 7시',
+      );
     } else if (currentStep === 'additionalInfo') {
-      await speak('추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항 등');
+      await speak(
+        '추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항 등',
+      );
     }
     startListening();
   };
@@ -104,20 +111,20 @@ export default function InputScreen2({route}) {
     }
   };
 
-  const onSpeechResults = (e) => {
+  const onSpeechResults = e => {
     if (e.value && e.value.length > 0) {
       const result = e.value[0].toLowerCase();
       handleVoiceInput(result);
     }
   };
 
-  const onSpeechError = (e) => {
+  const onSpeechError = e => {
     console.error('Speech recognition error:', e);
     speak('죄송합니다. 다시 한 번 말씀해 주세요.');
     startListening();
   };
 
-  const handleVoiceInput = (input) => {
+  const handleVoiceInput = input => {
     switch (currentStep) {
       case 'days':
         handleDaysInput(input);
@@ -131,7 +138,7 @@ export default function InputScreen2({route}) {
     }
   };
 
-  const handleDaysInput = (input) => {
+  const handleDaysInput = input => {
     const recognizedDays = DAYS.filter(day => input.includes(day));
     recognizedDays.forEach(day => toggleDay(day));
     if (recognizedDays.length > 0) {
@@ -143,11 +150,13 @@ export default function InputScreen2({route}) {
     }
   };
 
-  const handleTimesInput = (input) => {
+  const handleTimesInput = input => {
     const timeRegex = /(\d{1,2})시/g;
     const matches = [...input.matchAll(timeRegex)];
-    const recognizedTimes = matches.map(match => `${match[1].padStart(2, '0')}:00`);
-    
+    const recognizedTimes = matches.map(
+      match => `${match[1].padStart(2, '0')}:00`,
+    );
+
     if (recognizedTimes.length > 0) {
       recognizedTimes.forEach(time => handleTimeSelect(time));
       setCurrentStep('additionalInfo');
@@ -158,14 +167,16 @@ export default function InputScreen2({route}) {
     }
   };
 
-  const handleAdditionalInfoInput = (input) => {
+  const handleAdditionalInfoInput = input => {
     setAdditionalInfo(input);
-    speak('입력이 완료되었습니다. 저장하시겠습니까? 예 또는 아니오로 대답해 주세요.');
+    speak(
+      '입력이 완료되었습니다. 저장하시겠습니까? 예 또는 아니오로 대답해 주세요.',
+    );
     setCurrentStep('confirmation');
     startListening();
   };
 
-  const handleConfirmation = (input) => {
+  const handleConfirmation = input => {
     if (input.includes('예') || input.includes('네')) {
       handleSave();
     } else if (input.includes('아니오') || input.includes('아니요')) {
@@ -203,6 +214,7 @@ export default function InputScreen2({route}) {
       let drugList = existingData ? JSON.parse(existingData) : [];
 
       if (route.params?.editIndex !== undefined) {
+        cancelNotifications(drugList[route.params.editIndex]); // 알림 삭제
         drugList[route.params.editIndex] = drugInfo;
       } else {
         drugList.push(drugInfo);
@@ -223,64 +235,110 @@ export default function InputScreen2({route}) {
     }
   };
 
+  const cancelNotifications = drugInfo => {
+    drugInfo.times.forEach(time => {
+      drugInfo.days.forEach(day => {
+        const hashId = hashSum(`${drugInfo.name}-${day}-${time}`); // 해시값 생성
+        const notificationId = Math.abs(hashId.hashCode()) % 1000000; // 해시값을 6자리 숫자로 변환
+        PushNotification.cancelLocalNotification({
+          id: notificationId.toString(),
+        });
+      });
+    });
+  };
+
   const scheduleNotifications = drugInfo => {
     const currentDate = new Date();
 
-    drugInfo.times.forEach(time => {
-      drugInfo.days.forEach(day => {
+    drugInfo.times.forEach((time, timeIndex) => {
+      drugInfo.days.forEach((day, dayIndex) => {
         const notificationTime = new Date(currentDate);
         notificationTime.setHours(parseInt(time.split(':')[0]));
         notificationTime.setMinutes(parseInt(time.split(':')[1]));
         notificationTime.setSeconds(0);
 
-        const dayIndex = DAYS.indexOf(day);
+        const dayIndexValue = DAYS.indexOf(day);
         const todayIndex = currentDate.getDay(); // 0: 일, 1: 월 ...
 
-        // 오늘 날짜에 해당 요일이면 알림 시간에 오늘 날짜를 설정
-        if (dayIndex === todayIndex) {
-          if (notificationTime > currentDate) {
-            PushNotification.localNotificationSchedule({
-              channelId: 'schedule-channel',
-              title: `약 복용 알림: ${drugInfo.name}`,
-              message: `약을 복용할 시간입니다: ${time}`,
-              date: notificationTime,
-              allowWhileIdle: true,
-              repeatType: 'week',
-              userInfo: {
-                drugName: drugInfo.name,
-                dosage: drugInfo.dosage,
-                time: time,
-              },
-            });
-          }
+        const hashId = hashSum(`${drugInfo.name}-${day}-${time}`); // 해시값 생성
+        const notificationId = Math.abs(hashId.hashCode()) % 1000000; // 해시값을 6자리 숫자로 변환
 
-          console.log(
-            `알림 설정됨: ${drugInfo.name} - ${notificationTime} (오늘)`,
-          );
+        // 오늘 날짜에 해당 요일이면 알림 시간에 오늘 날짜를 설정
+        if (dayIndexValue === todayIndex) {
+          if (notificationTime > currentDate) {
+            // 현재 시간이 알림 시간보다 빠르면 오늘로 설정
+            scheduleNotification(
+              notificationId,
+              drugInfo,
+              notificationTime,
+              time,
+              '오늘',
+            );
+          } else {
+            // 현재 시간이 알림 시간보다 느리면 다음 해당 요일로 설정
+            notificationTime.setDate(notificationTime.getDate() + 7);
+            scheduleNotification(
+              notificationId,
+              drugInfo,
+              notificationTime,
+              time,
+              `다음 ${day}`,
+            );
+          }
         } else {
           // 오늘 날짜가 아닌 경우, 다음 해당 요일로 설정
           notificationTime.setDate(
-            notificationTime.getDate() + ((dayIndex - todayIndex + 7) % 7),
+            notificationTime.getDate() + ((dayIndexValue - todayIndex + 7) % 7),
           );
-          PushNotification.localNotificationSchedule({
-            channelId: 'schedule-channel',
-            title: `약 복용 알림: ${drugInfo.name}`,
-            message: `약을 복용할 시간입니다: ${time}`,
-            date: notificationTime,
-            allowWhileIdle: true,
-            repeatType: 'week',
-            userInfo: {
-              drugName: drugInfo.name,
-              dosage: drugInfo.dosage,
-              time: time,
-            },
-          });
-          console.log(
-            `알림 설정됨: ${drugInfo.name} - ${notificationTime} (다음 ${day})`,
+          scheduleNotification(
+            notificationId,
+            drugInfo,
+            notificationTime,
+            time,
+            `다음 ${day}`,
           );
         }
       });
     });
+  };
+
+  const scheduleNotification = (
+    notificationId,
+    drugInfo,
+    notificationTime,
+    time,
+    dayLabel,
+  ) => {
+    PushNotification.localNotificationSchedule({
+      channelId: 'schedule-channel',
+      id: notificationId.toString(),
+      title: `약 복용 알림: ${drugInfo.name}`,
+      message: `약을 복용할 시간입니다: ${time}`,
+      date: notificationTime,
+      allowWhileIdle: true,
+      repeatType: 'week',
+      userInfo: {
+        drugName: drugInfo.name,
+        dosage: drugInfo.dosage,
+        time: time,
+      },
+    });
+    console.log(
+      `${notificationId}: ${drugInfo.name} - ${notificationTime} (${dayLabel})`,
+    );
+  };
+
+  // 해시값 -> 숫자
+  String.prototype.hashCode = function () {
+    let hash = 0,
+      i,
+      chr;
+    for (i = 0; i < this.length; i++) {
+      chr = this.charCodeAt(i);
+      hash = (hash << 5) - hash + chr; // 해시값 계산
+      hash |= 0; // 32비트 정수로 변환
+    }
+    return hash;
   };
 
   const handleAddTime = () => {

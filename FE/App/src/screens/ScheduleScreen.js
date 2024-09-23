@@ -6,7 +6,8 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
+import hashSum from 'hash-sum';
 import {handleScheduleVoice} from '../screens/ScheduleVoiceHandler';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
@@ -51,17 +52,44 @@ export default function ScheduleScreen() {
       {
         text: '확인',
         onPress: async () => {
+          const drugToDelete = drugList[index];
           const newList = drugList.filter((_, i) => i !== index);
 
           setDrugList(newList);
           try {
             await AsyncStorage.setItem('drugList', JSON.stringify(newList));
+            cancelNotifications(drugToDelete);
           } catch (error) {
             console.error('Error saving updated list:', error);
           }
         },
       },
     ]);
+  };
+
+  const cancelNotifications = drugInfo => {
+    drugInfo.times.forEach(time => {
+      drugInfo.days.forEach(day => {
+        const hashId = hashSum(`${drugInfo.name}-${day}-${time}`); // 해시값 생성
+        const notificationId = Math.abs(hashId.hashCode()) % 1000000; // 해시값을 6자리 숫자로 변환
+        PushNotification.cancelLocalNotification({
+          id: notificationId.toString(),
+        });
+      });
+    });
+  };
+
+  // 해시값 -> 숫자
+  String.prototype.hashCode = function () {
+    let hash = 0,
+      i,
+      chr;
+    for (i = 0; i < this.length; i++) {
+      chr = this.charCodeAt(i);
+      hash = (hash << 5) - hash + chr; // 해시값 계산
+      hash |= 0; // 32비트 정수로 변환
+    }
+    return hash;
   };
 
   const handleEdit = (item, index) => {
