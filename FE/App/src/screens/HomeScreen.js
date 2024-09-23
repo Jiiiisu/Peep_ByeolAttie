@@ -184,10 +184,20 @@ export default function HomeScreen() {
           {role: 'assistant', content: assistantResponse},
         ]);
         try {
-          await speak(assistantResponse);
-          await Voice.destroy();  // Voice 모듈을 완전히 정지
-          navigation.navigate('Schedule', { startVoiceHandler: true });
+          //await speak(assistantResponse);
+          Tts.speak(assistantResponse, {
+            iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
+            androidParams: {
+              KEY_PARAM_PAN: -1,
+              KEY_PARAM_VOLUME: 1.0,
+              KEY_PARAM_STREAM: 'STREAM_MUSIC',
+            },
+          });
+          await Voice.destroy();  // Voice 모듈을 완전히 정지. 일정페이지 전환되면서 다음 음성인식이 진행이 안 되는 문졔 때문에 주석처리
+          setTimeout(() => {
+            navigation.navigate('Schedule', { startVoiceHandler: true });
           //handleScheduleVoice(navigation, resetVoiceState);
+          }, 2000); // TTS가 끝나기를 기다린 후 화면 전환
         } catch (error) {
           console.error('TTS error:', error);
         }
