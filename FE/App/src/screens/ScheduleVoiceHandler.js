@@ -81,7 +81,7 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
           } else if (result.includes('취소')) {
             await speak('알림 설정을 취소합니다');
             setTimeout(() => {
-              cleanupAndNavigate('Home', { resetVoice: true });
+              cleanupAndNavigate('Home', { resetVoice: true, cancelledFromSchedule: true });
             }, 2000);
           } else {
             await speak('잘못 들었습니다. 다시 말씀해 주세요.');
@@ -112,8 +112,8 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
             return koreanToArabic(match);
           });
         
-          // '개', '알' 뒤의 숫자만 남김
-          dosage = dosage.replace(/개|알/g, ''); // 개, 알 모두 '알'로 처리 or 필터링
+          // '개','계' '알' 앞의 숫자만 남김. 발음이 계 로 인식될 수도 있기 때문
+          dosage = dosage.replace(/개|계|알/g, ''); // 개, 알 모두 '알'로 처리 or 필터링 ''
         
           // 최종 변환된 dosage 값 확인
           console.log('변환된 dosage: ', dosage);  // 예: '2알'
@@ -121,7 +121,7 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
           
           // 2초 후 화면 전환
           setTimeout(() => {
-            cleanupAndNavigate('Input1', { recognizedDrugName: medicationName, recognizedDosage: dosage });
+            cleanupAndNavigate('Input1', { recognizedDrugName: medicationName, recognizedDosage: dosage, isVoiceMode: true });
           }, 2000);
         
           break;

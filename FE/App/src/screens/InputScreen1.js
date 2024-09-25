@@ -50,11 +50,30 @@ export default function InputScreen({route}) {
     if (isVoiceMode) {
       startVoiceInput();
     }
-  }, [route.params]);
+
+    Voice.onSpeechResults = onSpeechResults;
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, [route.params, isVoiceMode]);
 
   const startVoiceInput = async () => {
-    await speak('입력된 정보를 확인해 주세요. 약 이름은 ' + name + '이고, 복용량은 1회 ' + dosage + '알입니다. 맞으면 예, 틀리면 아니오라고 말씀해 주세요.');
-    startListening();
+    await speak(`입력된 정보를 확인해 주세요. 약 이름은 ${name}이고, 복용량은 1회 ${dosage}알입니다. 맞으면 맞아요, 틀리면 아니오라고 말씀해 주세요.`)
+    // Tts.speak(`입력된 정보를 확인해 주세요. 약 이름은 ${name}이고, 복용량은 1회 ${dosage}알입니다. 맞으면 맞아요, 틀리면 아니오라고 말씀해 주세요.`, {
+    //   iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
+    //   androidParams: {
+    //     KEY_PARAM_PAN: -1,
+    //     KEY_PARAM_VOLUME: 1.0,
+    //     KEY_PARAM_STREAM: 'STREAM_MUSIC',
+    //   },
+    // })
+    //startListening();
+    .then(() => { //speak내용이 실행이 되지 않아서 speak함수 호출 후 바로 startListening을 호출한 것이 원인일 수 있음.
+      startListening();
+    })
+    .catch((error) => {
+      console.error('speak error:', error);
+    });
   };
 
   const startListening = async () => {
@@ -65,17 +84,12 @@ export default function InputScreen({route}) {
     }
   };
 
-  useEffect(() => {
-    Voice.onSpeechResults = onSpeechResults;
-    return () => {
-      Voice.destroy().then(Voice.removeAllListeners);
-    };
-  }, []);
-
-  const onSpeechResults = (e) => {
+  const onSpeechResults = async (e) => {
     if (e.value && e.value.length > 0) {
       const result = e.value[0].toLowerCase();
-      if (result.includes('예') || result.includes('네')) {
+      console.log('Recognized speech:', result);
+      if (result.includes('예') || result.includes('네') || result.includes('맞아')) {
+        await stopListening();
         handleNext();
       } else if (result.includes('아니오') || result.includes('아니요')) {
         speak('정보를 수정하려면 화면의 입력란을 터치하세요.');
@@ -86,7 +100,16 @@ export default function InputScreen({route}) {
     }
   };
 
+  const stopListening = async () => {
+    try {
+      await Voice.stop();
+    } catch (e) {
+      console.error('Failed to stop voice recognition', e);
+    }
+  };
+
   const handleNext = () => {
+    //stopListening(); //handleNext()호출하는 onSpeechResults()함수에서 stopListening()호출 했음.
     navigation.navigate('Input2', {
       name,
       dosage,

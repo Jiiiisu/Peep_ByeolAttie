@@ -21,12 +21,17 @@ export default function ScheduleScreen() {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchDrugList();
-      if (route.params?.startVoiceHandler) {
-        setTimeout(() => {
+      
+      // 1초 후에 handleScheduleVoice 호출
+      setTimeout(() => {
+        if (route.params?.startVoiceHandler) {
+          // 음성 모드일 경우
           handleScheduleVoice(navigation, () => {});
-        }, 1000); // 화면 전환 후 약간의 지연을 두고 음성 안내 시작
-      }
-      //handleScheduleVoice(navigation);
+        } else {
+          // 일반 모드일 경우
+          handleScheduleVoice(navigation, () => {}, false); // false를 추가하여 음성 모드가 아님을 표시
+        }
+      }, 1000); // 1초 지연
     });
 
     return unsubscribe;

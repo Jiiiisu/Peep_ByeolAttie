@@ -34,6 +34,7 @@ export default function HomeScreen() {
   const [isTtsSpeaking, setIsTtsSpeaking] = useState(false);
   const voiceInitialized = useRef(false);
   const [showFeatures, setShowFeatures] = useState(true);
+  const [cancelledFromSchedule, setCancelledFromSchedule] = useState(false); //'취소' 후 다시 시작할 때의 동작을 위한 상태변수
 
   const resetVoiceState = useCallback(() => {
     setRecording(false);
@@ -60,10 +61,16 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       const resetVoice = route.params?.resetVoice ?? false;
+      const cancelledFromSchedule = route.params?.cancelledFromSchedule ?? false;
+
       if (resetVoice) {
         resetHomeScreen();
         // 파라미터를 사용한 후에는 초기화해주는 것이 좋습니다.
-        navigation.setParams({ resetVoice: undefined });
+        navigation.setParams({ resetVoice: undefined, cancelledFromSchedule: undefined });
+      }
+
+      if (cancelledFromSchedule) {
+        setCancelledFromSchedule(true);
       }
       
       const onBackPress = () => {
@@ -170,6 +177,11 @@ export default function HomeScreen() {
 
       let assistantResponse;
 
+      if (cancelledFromSchedule) {
+        // Reset the flag
+        setCancelledFromSchedule(false);
+      }
+
       // '카메라' 음성 명령 처리
       if (userMessage.includes('카메라')) {
         assistantResponse = '카메라를 켭니다';
@@ -201,20 +213,17 @@ export default function HomeScreen() {
         } catch (error) {
           console.error('TTS error:', error);
         }
-        // setTimeout(() => {
-        //   //navigation.navigate('Schedule');
-        //   navigation.navigate('Schedule', { startVoiceHandler: true });
-        //   //handleScheduleVoice(navigation, resetVoiceState); //handleScheduleVoice 함수를 호출할 때 resetVoiceState 함수를 명시적으로 전달
-        // }, 2000); // TTS가 끝나기를 기다린 후 화면 전환
-        // //return; // 여기서 함수 종료
       } else {
         // 여기서 서버로 메시지를 보내고 응답을 받는 로직을 추가해야 합니다.
         // 예시로 더미 응답을 사용합니다.
+        //assistantResponse = '죄송합니다. 다시 말씀해 주세요.';
+        assistantResponse = userMessage;
         setMessages(prevMessages => [
           ...prevMessages,
           {role: 'assistant', content: assistantResponse},
         ]);
         await speak(assistantResponse);
+        startListening(); // 인식되지 않은 명령어의 경우 다시 음성 인식 시작
       }
     } else {
       console.log('No speech results');

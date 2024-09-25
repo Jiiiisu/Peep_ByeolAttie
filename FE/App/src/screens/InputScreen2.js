@@ -7,6 +7,7 @@ import {
   TouchableWithoutFeedback,
   Modal,
   ScrollView,
+  ToastAndroid,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import WheelPicker from 'react-native-wheely';
@@ -58,7 +59,7 @@ export default function InputScreen2({route}) {
     if (isVoiceMode) {
       startVoiceInput();
     }
-  }, [route.params]);
+  }, [route.params, isVoiceMode, currentStep]);
 
   const initVoice = async () => {
     try {
@@ -80,19 +81,29 @@ export default function InputScreen2({route}) {
 
   const startVoiceInput = async () => {
     if (currentStep === 'days') {
-      await speak(
-        '어떤 요일에 약을 복용하는지 말씀해 주세요. 예를 들어, 월요일 수요일 금요일',
-      );
+      setTimeout(async () => {
+        await speak('어떤 요일에 약을 복용하는지 말씀해 주세요. 예를 들어, 월수금, 매일');
+        startListening();
+      }, 2000);
     } else if (currentStep === 'times') {
-      await speak(
-        '약을 복용하는 시간을 말씀해 주세요. 예를 들어 아침 8시, 저녁 7시',
-      );
-    } else if (currentStep === 'additionalInfo') {
-      await speak(
-        '추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항 등',
-      );
+      setTimeout(async () => {
+        await speak('약을 복용하는 시간을 말씀해 주세요. 예를 들어 아침 8시, 저녁 7시');
+        startListening();
+      }, 2000);
+    } 
+    else if (currentStep === 'confirmation') {
+      setTimeout(async () => {
+        await speak('저장하시겠습니까? 저장 또는 아니오로 대답해 주세요.');
+        setTimeout(() => startListening(), 1000);
+      }, 2000);
     }
-    startListening();
+    // else if (currentStep === 'additionalInfo') {
+    //   setTimeout(async () => {
+    //     await speak('추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항, 복용 주기 등');
+    //     // 여기서 startListening()을 호출하지 않습니다.
+    //     //startListening();
+    //   }, 2000);
+    // }
   };
 
   const startListening = async () => {
@@ -111,17 +122,29 @@ export default function InputScreen2({route}) {
     }
   };
 
-  const onSpeechResults = e => {
+  const onSpeechResults = e => { //시스템 콜백 함수(다른 함수에서 따로 호출하지 않음)
     if (e.value && e.value.length > 0) {
       const result = e.value[0].toLowerCase();
+      console.log('Recognized speech:', result);
       handleVoiceInput(result);
     }
   };
 
   const onSpeechError = e => {
     console.error('Speech recognition error:', e);
-    speak('죄송합니다. 다시 한 번 말씀해 주세요.');
-    startListening();
+    if (e.error.code === '7' || e.error.code === '5') {
+      console.log('No speech input detected. Restarting voice recognition.');
+      ToastAndroid.show('죄송합니다. 다시 한 번 말씀해 주세요.', ToastAndroid.SHORT);
+      setTimeout(() => {
+        startListening();
+      }, 2000);
+    } else {
+      //speak('음성 인식에 문제가 발생했습니다. 다시 시도합니다.');
+      ToastAndroid.show('음성 인식 중 문제가 발생했습니다. 다시 시도합니다.', ToastAndroid.SHORT);
+      setTimeout(() => {
+        startVoiceInput();
+      }, 2000);
+    }
   };
 
   const handleVoiceInput = input => {
@@ -135,58 +158,130 @@ export default function InputScreen2({route}) {
       case 'additionalInfo':
         handleAdditionalInfoInput(input);
         break;
+      case 'confirmation':
+        handleConfirmation(input);
+        break;
     }
   };
 
   const handleDaysInput = input => {
-    const recognizedDays = DAYS.filter(day => input.includes(day));
-    recognizedDays.forEach(day => toggleDay(day));
-    if (recognizedDays.length > 0) {
+    const recognizedDays = input.toLowerCase().split(/[,\s]+/).map(day => day.replace(/요일/g, ''));
+
+    if (recognizedDays.includes('매일')) {
+      setSelectedDays(DAYS);
+      console.log('매일로 설정되었습니다.');
       setCurrentStep('times');
-      startVoiceInput();
-    } else {
-      speak('인식된 요일이 없습니다. 다시 말씀해 주세요.');
-      startListening();
+      //setTimeout(() => startVoiceInput(), 1000);
+      return;
     }
+
+    const validDays = recognizedDays.filter(day => DAYS.includes(day));
+  
+    if (validDays.length > 0) {
+      console.log('요일을 입력받았습니다. 다음 질문으로 넘어갑니다');
+      validDays.forEach(day => toggleDay(day));
+      setCurrentStep('times');
+      //setTimeout(() => startVoiceInput(), 1000);
+    } else {
+      speak('인식된 요일이 없습니다. 어떤 요일에 약을 복용하는지 다시 말씀해 주세요.');
+      setTimeout(() => startListening(), 3000);
+    }    
   };
 
   const handleTimesInput = input => {
-    const timeRegex = /(\d{1,2})시/g;
-    const matches = [...input.matchAll(timeRegex)];
-    const recognizedTimes = matches.map(
-      match => `${match[1].padStart(2, '0')}:00`,
-    );
+    // const timeKeywords = {
+    //   아침: {hours: '08', minutes: '00'},
+    //   점심: {hours: '12', minutes: '00'},
+    //   저녁: {hours: '19', minutes: '00'},
+    // };
+    const timeKeywords = {
+      아침: '08:00',
+      점심: '12:00',
+      저녁: '19:00',
+    };
 
-    if (recognizedTimes.length > 0) {
-      recognizedTimes.forEach(time => handleTimeSelect(time));
+    //const recognizedTimes = input.split(/[,\s]+/).map(time => timeKeywords[time]).filter(Boolean);
+
+    const koreanToArabic = (koreanNumber) => {
+      const koreanNumbers = {
+        일: 1, 이: 2, 삼: 3, 사: 4, 오: 5, 육: 6, 칠: 7, 팔: 8, 구: 9,
+        십: 10, 십일: 11, 십이: 12, 십삼: 13, 십사: 14, 십오: 15, 십육: 16, 십칠: 17, 십팔: 18, 십구: 19,
+        이십: 20, 이십일: 21, 이십이: 22, 이십삼: 23, 이십사: 24,
+        한: 1, 두: 2, 세: 3, 네: 4, 다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9, 열: 10, 열한: 11, 열두: 12, 
+        열세: 13, 열네: 14, 열다섯:15, 열여섯: 16, 열일곱: 17, 열여덟: 18, 열아홉: 19, 스물: 20, 스물한: 21, 스물두: 22, 스물세: 23, 스물네: 24,
+      };
+      return koreanNumbers[koreanNumber] || koreanNumber;
+    };
+
+    const convertTime = (time) => {
+      let [hours, minutes] = time.split(':');
+      hours = parseInt(hours);
+      minutes = minutes ? parseInt(minutes) : 0;
+  
+      if (input.toLowerCase().includes('오후') && hours < 12) {
+        hours += 12;
+      } else if (input.toLowerCase().includes('오전') && hours === 12) {
+        hours = 0;
+      }
+  
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    };
+
+    const times = input.toLowerCase().split(/[,\s]+/).map(time => {
+      if (timeKeywords[time]) {
+        return timeKeywords[time];
+      }
+  
+      const arabicTime = time.replace(/([가-힣]+)/g, (match) => koreanToArabic(match));
+      const timeMatch = arabicTime.match(/(\d{1,2})[시:]?\s*(\d{1,2})?분?/);
+  
+      if (timeMatch) {
+        const [_, hours, minutes] = timeMatch;
+        return convertTime(`${hours.padStart(2, '0')}:${minutes ? minutes.padStart(2, '0') : '00'}`);
+      }
+  
+      return null;
+    }).filter(Boolean);
+
+    if (times.length > 0) {
+      console.log('시간을 입력받았습니다. 다음 질문으로 넘어갑니다');
+      times.forEach(time => handleTimeSelect(time));
       setCurrentStep('additionalInfo');
-      startVoiceInput();
+      // startVoiceInput 호출을 제거하고 직접 다음 단계의 TTS를 실행합니다.
+      setTimeout(async () => {
+        await speak('추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항, 복용 주기 등');
+        setTimeout(() => startListening(), 5000); // TTS 후 5초 뒤에 음성 인식 시작
+      }, 1000);
     } else {
-      speak('인식된 시간이 없습니다. 다시 말씀해 주세요.');
-      startListening();
+      speak('인식된 시간이 없습니다. 약을 복용하는 시간을 다시 말씀해 주세요.');
+      setTimeout(() => startListening(), 3000);
     }
   };
 
   const handleAdditionalInfoInput = input => {
     setAdditionalInfo(input);
-    speak(
-      '입력이 완료되었습니다. 저장하시겠습니까? 예 또는 아니오로 대답해 주세요.',
-    );
-    setCurrentStep('confirmation');
-    startListening();
-  };
+    console.log('추가 정보 입력 대기 중...');
+
+    // 3초 후에 확인 질문을 하고 음성 인식 시작
+    setTimeout(async () => {
+      await speak('입력이 완료되었습니다. 저장하시겠습니까? 저장 또는 아니요로 대답해 주세요.');
+      setCurrentStep('confirmation');
+      setTimeout(() => startListening(), 1000); // TTS 종료 후 1초 뒤에 음성 인식 시작
+    }, 3000);
+};
 
   const handleConfirmation = input => {
-    if (input.includes('예') || input.includes('네')) {
+    const lowerInput = input.toLowerCase();
+    if (lowerInput.includes('저장') || lowerInput.includes('자장') || lowerInput.includes('저자') || lowerInput.includes('예')) {
       handleSave();
-    } else if (input.includes('아니오') || input.includes('아니요')) {
+    } else if (lowerInput.includes('아니') || lowerInput.includes('아니오') || lowerInput.includes('아니요') || lowerInput.includes('노')) {
       speak('입력이 취소되었습니다. 처음부터 다시 시작합니다.');
       resetInputs();
       setCurrentStep('days');
-      startVoiceInput();
+      setTimeout(() => startVoiceInput(), 2000);
     } else {
-      speak('예 또는 아니오로 대답해 주세요.');
-      startListening();
+      speak('저장 또는 아니오로 대답해 주세요.');
+      setTimeout(() => startListening(), 2000);
     }
   };
 
@@ -223,7 +318,7 @@ export default function InputScreen2({route}) {
       await AsyncStorage.setItem('drugList', JSON.stringify(drugList));
       scheduleNotifications(drugInfo); // 알림 예약
       if (isVoiceMode) {
-        speak('약 정보가 저장되었습니다. 홈 화면으로 돌아갑니다.');
+        speak('약 정보가 저장되었습니다. 일정 페이지로 돌아갑니다.');
       }
       navigation.navigate('Schedule');
     } catch (error) {
