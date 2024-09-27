@@ -12,7 +12,6 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
   // Voice 모듈 초기화 및 이벤트 리스너 설정
   isCancelled = false;
   let medicationName = '';
-  let dosage = '';
   let currentStep = 'inputMethod';
 
   const cleanupAndNavigate = (screenName, params = {}) => {
@@ -20,10 +19,18 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
     stopListening();
     Tts.stop();
     clearTimeout(timeoutId);
+    Voice.destroy().then(Voice.removeAllListeners);
     if (typeof resetVoiceState === 'function') {
       resetVoiceState(); // HomeScreen에서 전달받은 함수 호출
     }
-    navigation.navigate(screenName, { ...params, isVoiceMode });  // isVoiceMode 상태를 전달
+    if (screenName === 'Home') {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home', params: { ...params, resetVoice: true } }],
+      });
+    } else {
+      navigation.navigate(screenName, { ...params, isVoiceMode }); // isVoiceMode 상태를 전달
+    }
   };
 
   const initVoice = async () => {
@@ -69,66 +76,51 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
         return;
       }
 
-      switch (currentStep) {
-        case 'inputMethod':
-          if (result.includes('음성')) {
-            isVoiceMode = true;  // 음성 모드로 설정
-            currentStep = 'name';
-            await askForMedicationName();
-          } else if (result.includes('텍스트')) {
-            isVoiceMode = false;  // 텍스트 모드로 설정
-            cleanupAndNavigate('Input1');
-          } else if (result.includes('취소')) {
-            await speak('알림 설정을 취소합니다');
-            setTimeout(() => {
-              cleanupAndNavigate('Home', { resetVoice: true, cancelledFromSchedule: true });
-            }, 2000);
-          } else {
-            await speak('잘못 들었습니다. 다시 말씀해 주세요.');
-            await askForInputMethod();
-          }
-          break;
-        case 'name':
-          medicationName = result;
-          currentStep = 'dosage';
-          await askForDosage();
-          break;
-        case 'dosage':
-          // 사용자가 말한 내용을 받음
-          dosage = result.replace(/[^가-힣0-9\s]/g, ''); // '개', '알'과 숫자만 남기고 나머지 필터링
-        
-          // 한국어 숫자를 아라비아 숫자로 변환하는 함수
-          const koreanToArabic = (koreanNumber) => {
-            const koreanNumbers = {
-              '영': 0, '하나': 1, '한': 1, '둘': 2, '두': 2, '셋': 3, '세': 3, '넷': 4, '네': 4, '다섯': 5,
-              '여섯': 6, '일곱': 7, '여덟': 8, '아홉': 9, '열': 10
-            };
-        
-            return koreanNumbers[koreanNumber] || koreanNumber;  // 해당하지 않는 값은 그대로 반환
-          };
-        
-          // 복용량 문자열에서 한국어 숫자를 찾아 변환
-          dosage = dosage.replace(/(영|하나|한|둘|두|셋|세|넷|네|다섯|여섯|일곱|여덟|아홉|열)/g, (match) => {
-            return koreanToArabic(match);
-          });
-        
-          // '개','계' '알' 앞의 숫자만 남김. 발음이 계 로 인식될 수도 있기 때문
-          dosage = dosage.replace(/개|계|알/g, ''); // 개, 알 모두 '알'로 처리 or 필터링 ''
-        
-          // 최종 변환된 dosage 값 확인
-          console.log('변환된 dosage: ', dosage);  // 예: '2알'
-          await speak('입력된 정보를 확인하기 위해 화면으로 이동합니다.');
-          
-          // 2초 후 화면 전환
-          setTimeout(() => {
-            cleanupAndNavigate('Input1', { recognizedDrugName: medicationName, recognizedDosage: dosage, isVoiceMode: true });
-          }, 2000);
-        
-          break;
+      if (result.includes('음성')) {
+        isVoiceMode = true;  // 음성 모드로 설정
+        // Input1로 화면 전환
+        setTimeout(() => {
+          cleanupAndNavigate('Input1', { isVoiceMode });
+        }, 2000);
+        currentStep = 'name';
+      } else if (result.includes('텍스트')) {
+        isVoiceMode = false;  // 텍스트 모드로 설정
+        cleanupAndNavigate('Input1');
+      } else if (result.includes('취소')) {
+        await speak('알림 설정을 취소합니다');
+        setTimeout(() => {
+          cleanupAndNavigate('Home', { resetVoice: true, cancelledFromSchedule: true });
+        }, 2000);
+      } else {
+        await speak('잘못 들었습니다. 다시 말씀해 주세요.');
+        await askForInputMethod();
       }
+      // switch (currentStep) {
+      //   case 'inputMethod':
+      //     if (result.includes('음성')) {
+      //       isVoiceMode = true;  // 음성 모드로 설정
+      //       // Input1로 화면 전환
+      //       setTimeout(() => {
+      //         cleanupAndNavigate('Input1', { isVoiceMode });
+      //       }, 2000);
+      //       currentStep = 'name';
+      //     } else if (result.includes('텍스트')) {
+      //       isVoiceMode = false;  // 텍스트 모드로 설정
+      //       cleanupAndNavigate('Input1');
+      //     } else if (result.includes('취소')) {
+      //       await speak('알림 설정을 취소합니다');
+      //       setTimeout(() => {
+      //         cleanupAndNavigate('Home', { resetVoice: true, cancelledFromSchedule: true });
+      //       }, 2000);
+      //     } else {
+      //       await speak('잘못 들었습니다. 다시 말씀해 주세요.');
+      //       await askForInputMethod();
+      //     }
+      //     break;
+      // }
     } else {
       console.log('No speech results');
-      await speak('음성이 인식되지 않았습니다. 다시 말씀해 주세요.');
+      await speak('음성이 인식되지 않았습니다. 다시 말씀해 주세요.')
       if (currentStep === 'inputMethod') {
         await askForInputMethod();
       } else {
@@ -170,46 +162,6 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
     // Tts.addEventListener('tts-finish', () => {
     //   if (!isCancelled) timeoutId = setTimeout(startListening, 1000);
     // });
-  };
-
-  const askForMedicationName = async () => {
-    if (isCancelled) return;
-    await speak('복용할 약의 이름을 입력해 주세요');
-    if (!isCancelled) setTimeout(startListening, 1000);
-  };
-  
-  const askForDosage = async () => {
-    if (isCancelled) return;
-    await speak('한 번에 복용하는 약의 양을 말씀해 주세요');
-    if (!isCancelled) setTimeout(startListening, 1000);
-  };
-
-  const startListeningForInputMethod = async () => { //추후 음성출력 후 음성입력받는 시간 차가 생기면 startListening함수 분리해야함
-    if (isCancelled || isSpeaking) return;
-    try {
-      await Voice.start('ko-KR');
-      isListening = true;
-      
-      // 6초 후에 음성 인식 결과가 없으면 다시 안내 메시지 출력
-      timeoutId = setTimeout(() => {
-        if (isListening) {
-          stopListening();
-          askForInputMethod();
-        //   Tts.speak('음성으로 입력하시려면 음성, 텍스트로 입력하시려면 텍스트, 취소하시려면 취소를 입력하세요', {
-        //     iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
-        //     androidParams: {
-        //       KEY_PARAM_PAN: -1,
-        //       KEY_PARAM_VOLUME: 1.0,
-        //       KEY_PARAM_STREAM: 'STREAM_MUSIC',
-        //     },
-        //   });
-        }
-      }, 7000);
-    } catch (e) {
-      console.error('Failed to start voice recognition', e);
-      // 에러 발생 시 재시도
-      if (!isCancelled) setTimeout(startListeningForInputMethod, 1000);
-    }
   };
 
   const startListening = async () => {
@@ -269,8 +221,13 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
 export const initTts = async () => {
   try {
     await Tts.setDefaultLanguage('ko-KR');
+    await Tts.setDefaultVoice('ko-KR-SMTf00');  // 또는 'ko-KR-default'
     const voices = await Tts.voices();
     const availableVoices = voices.filter(v => v.language === 'ko-KR');
+
+    Tts.addEventListener('tts-start', (event) => console.log('TTS start', event));
+    Tts.addEventListener('tts-finish', (event) => console.log('TTS finish', event));
+    Tts.addEventListener('tts-cancel', (event) => console.log('TTS cancel', event));
     
     if (availableVoices.length > 0) {
       await Tts.setDefaultVoice(availableVoices[0].id);

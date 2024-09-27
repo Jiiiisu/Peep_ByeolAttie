@@ -65,12 +65,18 @@ export default function HomeScreen() {
 
       if (resetVoice) {
         resetHomeScreen();
+        if (cancelledFromSchedule) {
+          setCancelledFromSchedule(true);
+          // // 스케줄 취소 후 돌아왔을 때 새로운 음성 인식 세션 시작
+          // setTimeout(() => {
+          //   initVoice();
+          //   startListening();
+          // }, 1000);
+        } else {
+          setRecording(false); // 취소가 아닌 경우에도 recording 상태 초기화
+        }
         // 파라미터를 사용한 후에는 초기화해주는 것이 좋습니다.
         navigation.setParams({ resetVoice: undefined, cancelledFromSchedule: undefined });
-      }
-
-      if (cancelledFromSchedule) {
-        setCancelledFromSchedule(true);
       }
       
       const onBackPress = () => {
@@ -86,14 +92,19 @@ export default function HomeScreen() {
       return () => {
         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
         //resetVoiceState(); //계속 오류 5,7 발생해서 과부화 걸림
+        // 화면에서 벗어날 때 정리 작업
+        Voice.destroy().then(Voice.removeAllListeners);
+        Tts.stop();
       };
-    }, [route.params, navigation, messages.length, recording, isTtsSpeaking, resetHomeScreen, resetVoiceState])
+    }, [route.params, navigation, resetHomeScreen, initVoice, startListening])
   );
 
   const resetHomeScreen = useCallback(() => {
     setShowFeatures(true);
     setMessages([]);
     setResults([]);
+    setRecording(false); // 마이크 버튼 상태 초기화
+    setCancelledFromSchedule(false);
     resetVoiceState();
   }, [resetVoiceState]);
 
@@ -178,67 +189,65 @@ export default function HomeScreen() {
       let assistantResponse;
 
       if (cancelledFromSchedule) {
-        // Reset the flag
+        // 스케줄 취소 후 돌아온 경우, 모든 명령어를 직접 처리
         setCancelledFromSchedule(false);
-      }
-
-      // '카메라' 음성 명령 처리
-      if (userMessage.includes('카메라')) {
-        assistantResponse = '카메라를 켭니다';
-        await stopListening();
-        navigation.navigate('Camera');
-      }
-      else if (userMessage.includes('일정')){
-        assistantResponse = '일정 관리 페이지로 이동합니다';
-        await stopListening();
+        setRecording(true); // 음성 인식 시작 시 recording 상태를 true로 설정
+        //setRecording(false);
+        // 여기에 추가 코드 작성
+        await speak('안녕하세요. 무엇을 도와드릴까요?');
         setMessages(prevMessages => [
           ...prevMessages,
-          {role: 'assistant', content: assistantResponse},
+          {role: 'assistant', content: '안녕하세요. 무엇을 도와드릴까요?'},
         ]);
-        try {
-          //await speak(assistantResponse);
-          Tts.speak(assistantResponse, {
-            iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
-            androidParams: {
-              KEY_PARAM_PAN: -1,
-              KEY_PARAM_VOLUME: 1.0,
-              KEY_PARAM_STREAM: 'STREAM_MUSIC',
-            },
-          });
-          await Voice.destroy();  // Voice 모듈을 완전히 정지. 일정페이지 전환되면서 다음 음성인식이 진행이 안 되는 문졔 때문에 주석처리
-          setTimeout(() => {
-            navigation.navigate('Schedule', { startVoiceHandler: true });
-          //handleScheduleVoice(navigation, resetVoiceState);
-          }, 2000); // TTS가 끝나기를 기다린 후 화면 전환
-        } catch (error) {
-          console.error('TTS error:', error);
-        }
+        
+        // 기존의 명령어 처리 로직을 그대로 실행
+        handleVoiceCommand(userMessage);
       } else {
-        // 여기서 서버로 메시지를 보내고 응답을 받는 로직을 추가해야 합니다.
-        // 예시로 더미 응답을 사용합니다.
-        //assistantResponse = '죄송합니다. 다시 말씀해 주세요.';
-        assistantResponse = userMessage;
-        setMessages(prevMessages => [
-          ...prevMessages,
-          {role: 'assistant', content: assistantResponse},
-        ]);
+        // 기존의 일반적인 명령어 처리 로직
+        handleVoiceCommand(userMessage);
+      }
+    }
+  };
+
+  // 기존의 명령어 처리 로직을 별도의 함수로 분리
+  const handleVoiceCommand = async (userMessage) => {
+    let assistantResponse = '';
+
+    // '카메라' 음성 명령 처리
+    if (userMessage.includes('카메라')) {
+      assistantResponse = '카메라를 켭니다';
+      await stopListening();
+      navigation.navigate('Camera');
+    } else if (userMessage.includes('일정')) {
+      assistantResponse = '일정 관리 페이지로 이동합니다';
+      await stopListening();
+      setMessages(prevMessages => [
+        ...prevMessages,
+        {role: 'assistant', content: assistantResponse},
+      ]);
+      try {
         await speak(assistantResponse);
-        startListening(); // 인식되지 않은 명령어의 경우 다시 음성 인식 시작
+        setTimeout(() => {
+          navigation.navigate('Schedule', { startVoiceHandler: true });
+        }, 2000);
+      } catch (error) {
+        console.error('TTS error:', error);
       }
     } else {
-      console.log('No speech results');
-      resetVoiceState();
+      // 다른 명령어에 대한 처리
+      assistantResponse = '죄송합니다. 이해하지 못했습니다.';
+      setMessages(prevMessages => [
+        ...prevMessages,
+        {role: 'assistant', content: assistantResponse},
+      ]);
+      await speak(assistantResponse);
     }
   };
   
   const startListening = async () => {
     try {
       console.log('Starting voice recognition');
-      await Voice.start('ko-KR', {
-        //EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 3000,
-        //EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 3000,
-        //EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 3000,
-      });
+      await Voice.start('ko-KR');
       //await Voice.start('en-US');
       setRecording(true);
       setShowFeatures(false);
@@ -255,7 +264,7 @@ export default function HomeScreen() {
     } catch (e) {
       console.error('stopListening error: ', e);
     } finally {
-      // 추가적인 정리 작업이 필요하다면 여기에 작성
+      setRecording(false); // 확실히 recording 상태를 false로 설정
     }
   };
 

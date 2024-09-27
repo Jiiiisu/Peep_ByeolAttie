@@ -30,7 +30,7 @@ export default function InputScreen2({route}) {
   const [times, setTimes] = useState([]);
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedTime, setSelectedTime] = useState('');
+  const [selectedTime, setSelectedTime] = useState('09:00');
   const [selectedDays, setSelectedDays] = useState([]);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [currentStep, setCurrentStep] = useState('days');
@@ -155,6 +155,9 @@ export default function InputScreen2({route}) {
       case 'times':
         handleTimesInput(input);
         break;
+      case 'additionalTime':
+        handleAdditionalTimeInput(input);
+        break;
       case 'additionalInfo':
         handleAdditionalInfoInput(input);
         break;
@@ -188,7 +191,25 @@ export default function InputScreen2({route}) {
     }    
   };
 
-  const handleTimesInput = input => {
+  const convertTime = (time, input) => {
+    let [hours, minutes] = time.split(':');
+    hours = parseInt(hours);
+    minutes = minutes ? parseInt(minutes) : 0;
+
+    if (input.toLowerCase().includes('오후') || input.toLowerCase().includes('저녁')) { //아침이나 저녁 n시 이렇게 입력하는 경우도 포함
+      if (hours < 12) {
+        hours += 12;
+      }
+    } else if (input.toLowerCase().includes('오전') || input.toLowerCase().includes('아침')) {
+      if (hours === 12) {
+        hours = 0;
+      }
+    }
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+
+  const handleTimesInput = async input => {
     // const timeKeywords = {
     //   아침: {hours: '08', minutes: '00'},
     //   점심: {hours: '12', minutes: '00'},
@@ -213,20 +234,6 @@ export default function InputScreen2({route}) {
       return koreanNumbers[koreanNumber] || koreanNumber;
     };
 
-    const convertTime = (time) => {
-      let [hours, minutes] = time.split(':');
-      hours = parseInt(hours);
-      minutes = minutes ? parseInt(minutes) : 0;
-  
-      if (input.toLowerCase().includes('오후') && hours < 12) {
-        hours += 12;
-      } else if (input.toLowerCase().includes('오전') && hours === 12) {
-        hours = 0;
-      }
-  
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    };
-
     const times = input.toLowerCase().split(/[,\s]+/).map(time => {
       if (timeKeywords[time]) {
         return timeKeywords[time];
@@ -237,7 +244,7 @@ export default function InputScreen2({route}) {
   
       if (timeMatch) {
         const [_, hours, minutes] = timeMatch;
-        return convertTime(`${hours.padStart(2, '0')}:${minutes ? minutes.padStart(2, '0') : '00'}`);
+        return convertTime(`${hours.padStart(2, '0')}:${minutes ? minutes.padStart(2, '0') : '00'}`, time);
       }
   
       return null;
@@ -245,16 +252,42 @@ export default function InputScreen2({route}) {
 
     if (times.length > 0) {
       console.log('시간을 입력받았습니다. 다음 질문으로 넘어갑니다');
-      times.forEach(time => handleTimeSelect(time));
-      setCurrentStep('additionalInfo');
-      // startVoiceInput 호출을 제거하고 직접 다음 단계의 TTS를 실행합니다.
+      times.forEach(time => {
+        handleTimeSelect(time);
+        setTimes(prevTimes => [...prevTimes, time]);
+      });
+      //setSelectedTime(times[times.length - 1]); // 마지막으로 입력받은 시간을 selectedTime으로 설정 // WheelPicker의 상태도 업데이트
+      //setSelectedTime('09:00'); // selectedTime을 초기값으로 설정
+
+      setCurrentStep('additionalTime'); // 추가 시간 입력 단계로 변경
+      await speak('예약 시간을 추가하시려면 추가, 없으시면 다음을 말씀해주세요');
+      setTimeout(() => startListening(), 1000);
+    } else {
+      await speak('인식된 시간이 없습니다. 약을 복용하는 시간을 다시 말씀해 주세요.');
+      setTimeout(() => startListening(), 3000);
+    }
+  };
+
+  const handleAdditionalTimeInput = async (input) => {
+    const lowerInput = input.toLowerCase();
+    if (lowerInput.includes('추가')) {
+      setCurrentStep('times'); // 다시 시간 입력 단계로
+      await speak('추가할 시간을 말씀해 주세요.');
+      setTimeout(() => startListening(), 1000);
+    } else if (lowerInput.includes('다음') || lowerInput.includes('아니요')) {
+      setCurrentStep('additionalInfo'); // 여기서 additionalInfo 단계로 넘어감
       setTimeout(async () => {
-        await speak('추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항, 복용 주기 등');
-        setTimeout(() => startListening(), 5000); // TTS 후 5초 뒤에 음성 인식 시작
+        await speak('추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항, 복용 주기 등')
+        .then(() => { //speak내용이 실행이 되지 않아서 speak함수 호출 후 바로 startListening을 호출한 것이 원인일 수 있음.
+          startListening();
+        })
+        .catch((error) => {
+          console.error('speak error:', error);
+        });
       }, 1000);
     } else {
-      speak('인식된 시간이 없습니다. 약을 복용하는 시간을 다시 말씀해 주세요.');
-      setTimeout(() => startListening(), 3000);
+      await speak('추가 또는 다음이라고 말씀해 주세요.');
+      setTimeout(() => startListening(), 2000);
     }
   };
 
@@ -275,13 +308,13 @@ export default function InputScreen2({route}) {
     if (lowerInput.includes('저장') || lowerInput.includes('자장') || lowerInput.includes('저자') || lowerInput.includes('예')) {
       handleSave();
     } else if (lowerInput.includes('아니') || lowerInput.includes('아니오') || lowerInput.includes('아니요') || lowerInput.includes('노')) {
-      speak('입력이 취소되었습니다. 처음부터 다시 시작합니다.');
-      resetInputs();
-      setCurrentStep('days');
-      setTimeout(() => startVoiceInput(), 2000);
+      speak('입력이 취소되었습니다. 일정 페이지로 돌아갑니다.');
+      setTimeout(() => {
+        navigation.navigate('Schedule', { startVoiceHandler: true });
+      }, 2000);
     } else {
       speak('저장 또는 아니오로 대답해 주세요.');
-      setTimeout(() => startListening(), 2000);
+      setTimeout(() => startListening(), 3000);
     }
   };
 
