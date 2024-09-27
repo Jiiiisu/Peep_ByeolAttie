@@ -12,6 +12,7 @@ import CameraScreen from '../screens/CameraScreen';
 import InputScreen1 from '../screens/InputScreen1';
 import InputScreen2 from '../screens/InputScreen2';
 import AlarmScreen from '../screens/AlarmScreen';
+import DisplayInform from '../screens/DisplayInform';
 // import ModelScreen from '../DL/v2/ModelScreen';
 import {Platform} from 'react-native';
 
@@ -70,6 +71,7 @@ function AppNavigation() {
       <Stack.Screen name="Setting" component={SettingScreen} />
       <Stack.Screen name="Camera" component={CameraScreen} />
       <Stack.Screen name="Alarm" component={AlarmScreen} />
+      <Stack.Screen name="Inform" component={DisplayInform} />
     </Stack.Navigator>
   );
 }
