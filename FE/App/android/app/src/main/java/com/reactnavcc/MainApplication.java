@@ -14,6 +14,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 //import com.airbnb.android.react.lottie.LottiePackage;
 import com.wenkesj.voice.VoicePackage;
+import com.imagepicker.ImagePickerPackage; 
 
 public class MainApplication extends Application implements ReactApplication {
 

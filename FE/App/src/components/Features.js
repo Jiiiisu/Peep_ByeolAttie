@@ -5,16 +5,14 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import {useNavigation} from '@react-navigation/native';
-import {getImage} from '../DL/modelService';
+import {runDeepLearning} from '../DL/modelService';
 
 export default function Features() {
   const navigation = useNavigation();
   return (
     <View className="space-y-2">
       <TouchableOpacity
-        onPress={() => {
-          getImage();
-        }}
+        onPress={() => {runDeepLearning();}}
         className="bg-orange-50 p-4 rounded-xl space-y-2">
         <View className="flex-row items-center space-x-1">
           {/* 아이콘 추가 */}

@@ -1,52 +1,59 @@
-import * as tmImage from '@teachablemachine/image';
+import {
+  getModel,
+  convertBase64ToTensor,
+  startPrediction,
+} from '../helpers/tensor-helper';
+import { cropPicture } from '../helpers/image-helper';
+import * as ImagePicker from 'expo-image-picker'; // expo-image-picker 사용
 
-const URL = './my_model/';
+const RESULT_MAPPING = [
+  "게루삼정 200mg/PTP", "아로나민골드정 72.2mg/PTP", "낙센정 250mg/PTP",
+  "게보린정 300mg/PTP", "베아제정", "타이레놀정500mg", "어린이용타이레놀정 80mg",
+  "알비정400mg/PTP", "암씨롱큐정 300mg/PTP", "코트리나캡슐 50mg/PTP",
+  "이소켓서방정 40mg", "아사콜디알정 400mg", "씨콜드코프정 200mg/PTP",
+  "펙소나딘정 120mg", "자누메트정 50/1000mg", "스티아론정(티아넵틴나트륨)",
+  "텔미트렌정 80mg", "로베글리타존황산염", "올로스타정 20/20mg",
+  "제라타딘정(로라타딘)", "부로멜장용정(브로멜라인)", "에소듀오정 20/800mg",
+  "피레스코정 400mg", "엑스원알정 5/160/10mg", "인베가서방정 6mg",
+  "엔비젯정10/40mg 43.4mg/PTP", "삼성아스피린장용정 100mg",
+  "엘스테인정(에르도스테인)", "투탑스플러스정 80/10/12.5mg", "테잘바이정 40/5mg"
+];
 
-let model = null;
-
-// 모델 로드 함수
-export const loadModel = async () => {
-  if (!model) {
-    const modelURL = URL + 'model.json';
-    const metadataURL = URL + 'metadata.json';
-    model = await tmImage.load(modelURL, metadataURL);
+// 딥러닝 실행 함수
+export const runDeepLearning = async () => {
+  // 권한 요청
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== 'granted') {
+    console.log('Camera roll permission is required!');
+    return;
   }
-};
 
-// 이미지 파일로 예측 수행 함수
-export const predictImage = async file => {
-  if (!model) {
-    await loadModel();
-  }
-
-  // eslint-disable-next-line no-undef
-  const image = new Image();
-  image.src = URL.createObjectURL(file);
-
-  return new Promise(resolve => {
-    image.onload = async () => {
-      const predictions = await model.predict(image);
-      resolve(predictions); // 예측 결과 반환
-    };
+  // 이미지 선택
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 1,
+    base64: true,
   });
+
+  if (result.cancelled) {
+    console.log('User cancelled image picker');
+  } else {
+    const imageData = result; // imageData는 {uri, width, height, base64} 포함
+    await processImagePrediction(imageData); // 이미지 예측 처리 함수 호출
+  }
 };
 
-// `getImage` 함수로 이미지 파일을 받아 예측 결과를 콘솔에 출력하는 함수
-export const getImage = async () => {
-  try {
-    // 이미지 파일 선택
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.onchange = async event => {
-      const file = event.target.files[0];
-      if (file) {
-        const predictions = await predictImage(file);
-        console.log('Prediction Results:', predictions);
-      }
-    };
-    fileInput.click(); // 파일 선택 창을 열기
-  } catch (error) {
-    console.error('Error running model:', error);
+// 이미지 예측 처리 함수
+const processImagePrediction = async (imageData) => {
+  const croppedData = await cropPicture(imageData, 300); // 이미지 자르기
+  if (!croppedData || !croppedData.base64) {
+    console.error('Cropped data is invalid or undefined');
+    return;
   }
+
+  const model = await getModel(); // 모델 가져오기
+  const tensor = await convertBase64ToTensor(croppedData.base64); // base64를 텐서로 변환
+  const prediction = await startPrediction(model, tensor); // 예측 실행
+  const highestPrediction = prediction.indexOf(Math.max(...prediction)); // 가장 높은 예측값 찾기
+  console.log('Predicted Shape:', RESULT_MAPPING[highestPrediction]); // 결과 출력
 };
