@@ -1,7 +1,10 @@
 import {View, Text, Linking, Image} from 'react-native';
-import React, {useRef, useState} from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import {Camera, useCameraDevices} from 'react-native-vision-camera';
 import {TouchableOpacity} from 'react-native-gesture-handler';
+import { useFrameProcessor } from 'react-native-vision-camera';
+import { runOnJS } from 'react-native-reanimated';
+import MlkitOcr from 'react-native-mlkit-ocr';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -21,9 +24,21 @@ export default function CameraScreen() {
   const camera = useRef(null);
   const [imageData, setImageData] = useState('');
   const [takePhotoClicked, setTakePhotoClicked] = useState(true);
+  const [recognizedText, setRecognizedText] = useState('');
+  const lastProcessedTime = useRef(0);
 
-  React.useEffect(() => {
-    requestCameraPermission();
+  useEffect(() => {
+    const setupCamera = async () => {
+      try {
+        await requestCameraPermission();
+        await initializeOcr();
+        // RNFS.requestPermission() 제거
+      } catch (error) {
+        console.error('Setup error:', error);
+      }
+    };
+
+    setupCamera();
   }, []);
 
   // Handler
@@ -34,6 +49,30 @@ export default function CameraScreen() {
       await Linking.openSettings();
     }
   }, []);
+
+  const checkMlkitOcr = async () => {
+    try {
+      const isAvailable = await MlkitOcr.isAvailable();
+      console.log('MlkitOcr is available:', isAvailable);
+    } catch (error) {
+      console.error('Error checking MlkitOcr availability:', error);
+    }
+  };
+
+  const initializeOcr = async () => {
+    try {
+      await MlkitOcr.init();
+      console.log('MlkitOcr initialized');
+      const result = await MlkitOcr.downloadModel('ko');
+      console.log('Korean model download result:', result);
+
+      // 모델 가용성 확인
+      const availableModels = await MlkitOcr.getAvailableModels();
+      console.log('Available models:', availableModels);
+    } catch (error) {
+      console.error('Error initializing MlkitOcr:', error);
+    }
+  };
 
   // 이미지를 서버로 옮기는 함수
   /*
@@ -61,6 +100,65 @@ export default function CameraScreen() {
     }
   };
    */
+
+  const processFrame = useCallback(async (frame) => {
+    try {
+      const currentTime = Date.now();
+      if (currentTime - lastProcessedTime.current < 2000) {
+        // 2초마다 처리
+        return;
+      }
+      lastProcessedTime.current = currentTime;
+
+      console.log('Processing frame:', frame);
+
+    // frame.toBase64() 대신 다른 방법 사용
+    const tempFilePath = `${RNFS.CachesDirectoryPath}/temp_frame.jpg`;
+    //await RNFS.writeFile(tempFilePath, frame.toBase64(), 'base64');
+    //console.log('Temp file created:', tempFilePath);
+
+    // VisionCamera의 takePhoto 메서드 사용
+    const photo = await camera.current.takePhoto({
+      qualityPrioritization: 'quality', // 'speed'에서 'quality'로 변경 
+      flash: 'auto', // 'off'에서 'auto'로 변경
+      enableAutoStabilization: true,
+    });
+    
+    console.log('Photo taken:', photo);
+
+    // 파일 이동
+    await RNFS.moveFile(photo.path, tempFilePath);
+    console.log('Temp file created:', tempFilePath);
+
+    //const result = await MlkitOcr.detectFromUri(`file://${tempFilePath}`);
+    const result = await MlkitOcr.detectFromUri(`file://${tempFilePath}`, {
+      languages: ['ko', 'en'], // 한국어와 영어 모두 인식
+      useGoogleCloudAPIs: false,
+      shouldDetectBoundingBoxes: true,
+      minimumTextHeight: 10,
+    })
+    console.log('OCR result:', result);
+
+    await RNFS.unlink(tempFilePath);
+    console.log('Temp file deleted');
+
+    if (result && Array.isArray(result) && result.length > 0) {
+      const text = result.map(block => block.text).join(' ');
+      setRecognizedText(text);
+    } else {
+      setRecognizedText('No text recognized');
+    }
+  } catch (error) {
+    console.error('OCR Error:', JSON.stringify(error, null, 2));
+    console.error('Error stack:', error.stack);
+    setRecognizedText('OCR Error occurred');
+    }
+  }, [camera]);
+
+  const frameProcessor = useFrameProcessor((frame) => {
+    'worklet';
+    runOnJS(processFrame)(frame);
+  }, []);
 
   const takePicture = async () => {
     if (camera != null) {
@@ -120,7 +218,9 @@ export default function CameraScreen() {
                 ref={camera}
                 device={device}
                 isActive={true}
-                photo
+                photo={true}
+                frameProcessor={frameProcessor} //frameProcessor 추가
+                frameProcessorFps={1}
               />
 
               {/* Take Photo Button */}
@@ -146,14 +246,15 @@ export default function CameraScreen() {
                   paddingVertical: 15,
                 }}>
                 <Shadow>
-                  <View
-                    className="flex-1 items-center justify-center rounded-2xl bg-white"
-                    style={{
-                      width: wp(90),
-                    }}>
-                    <Text style={{fontSize: wp(4.8)}}> camera state </Text>
-                  </View>
-                </Shadow>
+                <View
+                  className="flex-1 items-center justify-center rounded-2xl bg-white"
+                  style={{ width: wp(90) }}
+                >
+                  <Text style={{ fontSize: wp(4), color: 'black', textAlign: 'center' }}>
+                    {typeof recognizedText === 'string' ? recognizedText : 'Scanning...'}
+                  </Text>
+                </View>
+              </Shadow>
               </View>
             </View>
           ) : (

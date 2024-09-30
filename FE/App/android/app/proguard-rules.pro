@@ -10,3 +10,5 @@
 # Add any project specific keep options here:
 -keep class com.facebook.react.devsupport.** { *; }
 -dontwarn com.facebook.react.devsupport.**
+-keep class com.mrousavy.camera.** { *; }
+-keep class androidx.camera.core.** { *; }

@@ -16,6 +16,8 @@ import java.util.List;
 import com.wenkesj.voice.VoicePackage;
 import com.imagepicker.ImagePickerPackage; 
 
+import com.reactnativemlkitocr.MlkitOcrPackage;
+
 public class MainApplication extends Application implements ReactApplication {
 
   private final ReactNativeHost mReactNativeHost =
@@ -33,6 +35,7 @@ public class MainApplication extends Application implements ReactApplication {
           // packages.add(new MyReactNativePackage());
           //packages.add(new LottiePackage());
           //packages.add(new VoicePackage());
+          //packages.add(new MlkitOcrPackage());
           return packages;
         }
 
