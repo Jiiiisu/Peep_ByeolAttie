@@ -1,9 +1,24 @@
 import React, {useState, useEffect} from 'react';
-import {View, Text, Image} from 'react-native';
-import {GetInfoByName, GetDetailedInfo} from './getInform';
+import {
+  View,
+  Text,
+  Image,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import {ScrollView} from 'react-native-gesture-handler';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
+import {GetInfoByName, GetDetailedInfo} from './getInform';
+import {useNavigation} from '@react-navigation/native';
+import Back from '../../assets/images/Back.svg';
+import Close from '../../assets/images/Close.svg';
 
 const DisplayInform = () => {
+  const navigation = useNavigation();
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -15,14 +30,10 @@ const DisplayInform = () => {
   const [efcyQesitm, setEfcyQesitm] = useState('');
   const [useMethodQesitm, setUseMethodQesitm] = useState('');
   const [atpnWarnQesitm, setAtpnWarnQesitm] = useState('');
-  const [atpnQesitm, setAtpnQesitm] = useState('');
-  const [intrcQesitm, setIntrcQesitm] = useState('');
-  const [seQesitm, setSeQesitm] = useState('');
-  const [depositMethodQesitm, setDepositMethodQesitm] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
-      const nameOfMDN = '게루삼정';
+      const nameOfMDN = '지엘타이밍정';
       try {
         const infoResult = await GetInfoByName(nameOfMDN);
         const detailResult = await GetDetailedInfo(nameOfMDN);
@@ -39,10 +50,6 @@ const DisplayInform = () => {
         setEfcyQesitm(splitDetail[1] || '');
         setUseMethodQesitm(splitDetail[2] || '');
         setAtpnWarnQesitm(splitDetail[3] || '');
-        setAtpnQesitm(splitDetail[4] || '');
-        setIntrcQesitm(splitDetail[5] || '');
-        setSeQesitm(splitDetail[6] || '');
-        setDepositMethodQesitm(splitDetail[7] || '');
       } catch (err) {
         setError('약물 정보를 불러오는 데 실패했습니다.');
       } finally {
@@ -52,39 +59,76 @@ const DisplayInform = () => {
     fetchData();
   }, []);
 
-  if (loading) return <Text>로딩 중...</Text>;
-  if (error) return <Text>{error}</Text>;
+  // Render
+  function renderHeader() {
+    return (
+      <View
+        className="flex-row p-4 items-center z-10"
+        style={{
+          paddingHorizontal: 10,
+        }}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Back />
+        </TouchableOpacity>
+        <Text className="text-black text-[24px] font-Regular ml-3">
+          {' '}
+          상세 정보{' '}
+        </Text>
+      </View>
+    );
+  }
+
+  if (loading)
+    return (
+      <View className="flex-1 bg-default-1 items-center justify-center">
+        <ActivityIndicator size="large" color="#FF9F23" />
+      </View>
+    );
+  if (error)
+    return <Text className="text-black text-[24px] font-Regular">{error}</Text>;
 
   return (
-    <View className="flex-1 p-4 bg-default-1">
-      {name && (
-        <Text className="text-2xl font-bold mb-4 text-gray-800">{name}</Text>
-      )}
+    <View className="flex-1 bg-default-1">
+      {renderHeader()}
+      <View className="px-4 flex-1">
+        {image && (
+          <Image
+            source={{uri: image}}
+            className="mb-2 self-center"
+            resizeMode="contain"
+            style={{width: wp(60), height: hp(20)}}
+          />
+        )}
 
-      {image && (
-        <Image
-          source={{uri: image}}
-          className="w-full h-48 mb-4"
-          resizeMode="contain"
-        />
-      )}
+        {name && (
+          <Text className="text-black text-[30px] font-ExtraBold mb-4 self-center">
+            {name}
+          </Text>
+        )}
 
-      {detail ? (
-        <ScrollView className="flex-1">
-          <InfoSection title="분류" content={className} />
-          <InfoSection title="효능" content={efcyQesitm} />
-          <InfoSection title="사용법" content={useMethodQesitm} />
-          {atpnWarnQesitm && (
-            <InfoSection title="경고" content={atpnWarnQesitm} />
-          )}
-          <InfoSection title="주의사항" content={atpnQesitm} />
-          <InfoSection title="상호작용" content={intrcQesitm} />
-          <InfoSection title="부작용" content={seQesitm} />
-          <InfoSection title="보관방법" content={depositMethodQesitm} />
-        </ScrollView>
-      ) : (
-        <Text>약물 정보가 없습니다.</Text>
-      )}
+        {detail ? (
+          <ScrollView className="flex-1">
+            <InfoSection title="분류" content={className} />
+            <InfoSection title="효능" content={efcyQesitm} />
+            <InfoSection title="사용법" content={useMethodQesitm} />
+            {atpnWarnQesitm && (
+              <InfoSection title="경고" content={atpnWarnQesitm} />
+            )}
+          </ScrollView>
+        ) : (
+          <Text className="text-black text-[24px] font-Regular">
+            약물 정보가 없습니다.
+          </Text>
+        )}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Home')}
+          className="bg-orange-default p-4 rounded-xl space-y-2">
+          <View className="flex-row items-center justify-center space-x-1">
+            {/* 아이콘 추가 */}
+            <Text className="text-gray-700 text-[24px] font-Bold">확인</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -92,9 +136,11 @@ const DisplayInform = () => {
 const InfoSection = ({title, content}) => {
   if (!content) return null;
   return (
-    <View className="mb-4 bg-white rounded-lg p-4 shadow-md">
-      <Text className="text-xl font-bold mb-2 text-gray-700">{title}</Text>
-      <Text className="text-base text-gray-600 leading-6">{content}</Text>
+    <View className="flex-1 mb-4 bg-white rounded-lg p-4 shadow-md">
+      <Text className="text-black text-[26px] font-Bold mb-2">{title}</Text>
+      <Text className="text-gray-800 text-[24px] font-Regular leading-8">
+        {content}
+      </Text>
     </View>
   );
 };
