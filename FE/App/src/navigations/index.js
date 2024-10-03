@@ -6,14 +6,12 @@ import PushNotification from 'react-native-push-notification';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ScheduleScreen from '../screens/ScheduleScreen';
-import HelpScreen from '../screens/HelpScreen';
 import SettingScreen from '../screens/SettingScreen';
 import CameraScreen from '../screens/CameraScreen';
 import InputScreen1 from '../screens/InputScreen1';
 import InputScreen2 from '../screens/InputScreen2';
 import AlarmScreen from '../screens/AlarmScreen';
 import DisplayInform from '../screens/DisplayInform';
-// import ModelScreen from '../DL/v2/ModelScreen';
 import {Platform} from 'react-native';
 
 const Stack = createStackNavigator();
@@ -67,7 +65,7 @@ function AppNavigation() {
       <Stack.Screen name="Schedule" component={ScheduleScreen} />
       <Stack.Screen name="Input1" component={InputScreen1} />
       <Stack.Screen name="Input2" component={InputScreen2} />
-      <Stack.Screen name="Help" component={HelpScreen} />
+      <Stack.Screen name="Help" component={WelcomeScreen} />
       <Stack.Screen name="Setting" component={SettingScreen} />
       <Stack.Screen name="Camera" component={CameraScreen} />
       <Stack.Screen name="Alarm" component={AlarmScreen} />

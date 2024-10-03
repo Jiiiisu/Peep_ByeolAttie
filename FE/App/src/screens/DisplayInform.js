@@ -14,7 +14,6 @@ import {
 import {GetInfoByName, GetDetailedInfo} from './getInform';
 import {useNavigation} from '@react-navigation/native';
 import Back from '../../assets/images/Back.svg';
-import Close from '../../assets/images/Close.svg';
 
 const DisplayInform = () => {
   const navigation = useNavigation();
@@ -71,8 +70,7 @@ const DisplayInform = () => {
           <Back />
         </TouchableOpacity>
         <Text className="text-black text-[24px] font-Regular ml-3">
-          {' '}
-          상세 정보{' '}
+          상세 정보
         </Text>
       </View>
     );
@@ -124,7 +122,6 @@ const DisplayInform = () => {
           onPress={() => navigation.navigate('Home')}
           className="bg-orange-default p-4 rounded-xl space-y-2">
           <View className="flex-row items-center justify-center space-x-1">
-            {/* 아이콘 추가 */}
             <Text className="text-gray-700 text-[24px] font-Bold">확인</Text>
           </View>
         </TouchableOpacity>
