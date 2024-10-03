@@ -1,12 +1,11 @@
 import * as React from 'react';
-import {SafeAreaView, Text} from 'react-native';
-import {DrawerActions, NavigationContainer} from '@react-navigation/native';
-import AppNavigation from './src/navigations';
+import {NavigationContainer} from '@react-navigation/native';
+import DrawerNavigator from './src/navigations/DrawerNavigator';
 
 export default function App() {
   return (
     <NavigationContainer>
-      <AppNavigation />
+      <DrawerNavigator />
     </NavigationContainer>
   );
 }

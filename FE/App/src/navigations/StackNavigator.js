@@ -16,7 +16,7 @@ import {Platform} from 'react-native';
 
 const Stack = createStackNavigator();
 
-function AppNavigation() {
+function StackNavigator() {
   const navigation = useNavigation();
   const [isFirstLaunch, setIsFirstLaunch] = useState(null);
 
@@ -74,4 +74,4 @@ function AppNavigation() {
   );
 }
 
-export default AppNavigation;
+export default StackNavigator;

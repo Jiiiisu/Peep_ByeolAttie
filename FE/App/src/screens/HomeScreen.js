@@ -5,7 +5,6 @@ import {
   Text,
   PermissionsAndroid,
   Platform,
-  Alert,
   BackHandler,
   ToastAndroid,
 } from 'react-native';
@@ -17,9 +16,13 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Voice from '@react-native-voice/voice';
 import Tts from 'react-native-tts';
-import Features from '../components/Features';
-import {useNavigation, useFocusEffect, useRoute} from '@react-navigation/native';
-import {initTts, speak } from './ScheduleVoiceHandler';
+import {
+  useNavigation,
+  useFocusEffect,
+  useRoute,
+} from '@react-navigation/native';
+import {initTts, speak} from './ScheduleVoiceHandler';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import Logo from '../../assets/images/Logo.svg';
 import Recording from '../../assets/images/Recording.svg';
 import Stop from '../../assets/images/Stop.svg';
@@ -33,7 +36,6 @@ export default function HomeScreen() {
   const [assistantResponse, setText] = useState('');
   const [isTtsSpeaking, setIsTtsSpeaking] = useState(false);
   const voiceInitialized = useRef(false);
-  const [showFeatures, setShowFeatures] = useState(true);
   const [cancelledFromSchedule, setCancelledFromSchedule] = useState(false); //'취소' 후 다시 시작할 때의 동작을 위한 상태변수
 
   const resetVoiceState = useCallback(() => {
@@ -61,7 +63,8 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       const resetVoice = route.params?.resetVoice ?? false;
-      const cancelledFromSchedule = route.params?.cancelledFromSchedule ?? false;
+      const cancelledFromSchedule =
+        route.params?.cancelledFromSchedule ?? false;
 
       if (resetVoice) {
         resetHomeScreen();
@@ -76,9 +79,12 @@ export default function HomeScreen() {
           setRecording(false); // 취소가 아닌 경우에도 recording 상태 초기화
         }
         // 파라미터를 사용한 후에는 초기화해주는 것이 좋습니다.
-        navigation.setParams({ resetVoice: undefined, cancelledFromSchedule: undefined });
+        navigation.setParams({
+          resetVoice: undefined,
+          cancelledFromSchedule: undefined,
+        });
       }
-      
+
       const onBackPress = () => {
         if (messages.length > 0) {
           resetHomeScreen();
@@ -96,7 +102,7 @@ export default function HomeScreen() {
         Voice.destroy().then(Voice.removeAllListeners);
         Tts.stop();
       };
-    }, [route.params, navigation, resetHomeScreen, initVoice, startListening])
+    }, [route.params, navigation, resetHomeScreen, initVoice, startListening]),
   );
 
   const resetHomeScreen = useCallback(() => {
@@ -147,12 +153,12 @@ export default function HomeScreen() {
     }
   };
 
-  const onSpeechStart = (e) => {
+  const onSpeechStart = e => {
     console.log('onSpeechStart', e);
     setRecording(true);
   };
 
-  const onSpeechEnd = (e) => {
+  const onSpeechEnd = e => {
     console.log('onSpeechEnd', e);
     setRecording(false);
   };
@@ -162,9 +168,12 @@ export default function HomeScreen() {
     if (e.error.code === '5' || e.error.code === '7') {
       console.log('Client side error. Restarting voice recognition.');
       if (Platform.OS === 'android') {
-        ToastAndroid.show('음성 인식 중 문제가 발생했습니다. 다시 시도합니다.', ToastAndroid.SHORT);
+        ToastAndroid.show(
+          '음성 인식 중 문제가 발생했습니다. 다시 시도합니다.',
+          ToastAndroid.SHORT,
+        );
       }
-      setTimeout(startListening, 1000);// 자동으로 다시 시작
+      setTimeout(startListening, 1000); // 자동으로 다시 시작
     }
     setMessages(prevMessages => [
       ...prevMessages,
@@ -174,7 +183,7 @@ export default function HomeScreen() {
     //Alert.alert('Speech Recognition Error', `Error: ${e.error.message}`); //확인창 팝업해서 일일이 클릭해야 해서 제외함
   };
 
-  const onSpeechResults = async (e) => {
+  const onSpeechResults = async e => {
     console.log('onSpeechResults: ', e);
     // 음성 인식 결과를 메시지에 추가
     //if (e && e.value && Array.isArray(e.value) && e.value.length > 0) {
@@ -199,7 +208,7 @@ export default function HomeScreen() {
           ...prevMessages,
           {role: 'assistant', content: '안녕하세요. 무엇을 도와드릴까요?'},
         ]);
-        
+
         // 기존의 명령어 처리 로직을 그대로 실행
         handleVoiceCommand(userMessage);
       } else {
@@ -210,7 +219,7 @@ export default function HomeScreen() {
   };
 
   // 기존의 명령어 처리 로직을 별도의 함수로 분리
-  const handleVoiceCommand = async (userMessage) => {
+  const handleVoiceCommand = async userMessage => {
     let assistantResponse = '';
 
     // '카메라' 음성 명령 처리
@@ -228,7 +237,7 @@ export default function HomeScreen() {
       try {
         await speak(assistantResponse);
         setTimeout(() => {
-          navigation.navigate('Schedule', { startVoiceHandler: true });
+          navigation.navigate('Schedule', {startVoiceHandler: true});
         }, 2000);
       } catch (error) {
         console.error('TTS error:', error);
@@ -243,7 +252,7 @@ export default function HomeScreen() {
       await speak(assistantResponse);
     }
   };
-  
+
   const startListening = async () => {
     try {
       console.log('Starting voice recognition');
@@ -269,98 +278,57 @@ export default function HomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-default-1">
-      <View className="my-10">
-        <Logo height={hp(7)} />
+    <View className="relative flex-1 bg-default-1">
+      <View className="absolute top-0 left-0 right-0 flex-row items-center justify-center my-8 z-10">
+        <Logo width={wp(40)} height={hp(5)} />
       </View>
-      <SafeAreaView className="flex-1 flex mx-5">
+      <View className="absolute top-0 right-0 my-8 px-4 z-10">
+        <TouchableOpacity onPress={() => navigation.openDrawer()}>
+          <Icon name="menu" size={30} color="#000" />
+        </TouchableOpacity>
+      </View>
+      <SafeAreaView className="flex-1 mx-5 mt-24">
         {messages.length > 0 ? (
-          <View className="space-y-2 flex-1">
-            <Text
-              style={{fontSize: wp(5)}}
-              className="text-gray-700 font-semibold ml-1">
-              Assistant
-            </Text>
+          <View className="flex-1 space-y-2">
             <View
               style={{height: hp(58)}}
-              className="bg-default-2 rounded-3xl p-4">
+              className="p-4 rounded-3xl bg-default-2">
               <ScrollView
                 bounces={false}
                 className="space-y-4"
                 showsVerticalScrollIndicator={false}>
-                {messages.map((message, index) => {
-                  if (message.role == 'assistant') {
-                    // text response
-                    return (
-                      <View
-                        key={index}
-                        style={{width: wp(70)}}
-                        className="bg-orange-200 rounded-xl p-2 rounded-tl-none">
-                        <Text className="text-black text-[24px] font-Regular">
-                          {message.content}
-                        </Text>
-                      </View>
-                    );
-                  } else if (message.role === 'user') {
-                    return (
-                      <View key={index} className="flex-row justify-end">
-                        <View
-                          style={{width: wp(70)}}
-                          className="bg-white rounded-xl p-2 rounded-tr-none">
-                          <Text className="text-black text-[24px] font-Regular">
-                            {message.content}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  } else if (message.role === 'system') {
-                    return (
-                      <View key={index} className="flex-row justify-center">
-                        <View
-                          style={{width: wp(70)}}
-                          className="bg-red-200 rounded-xl p-2 items-center">
-                          <Text className="text-black text-[24px] font-Regular">
-                            {message.content}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  } else {
-                    // user input
-                    return (
-                      <View key={index} className="flex-row justify-end">
-                        <View
-                          style={{width: wp(70)}}
-                          className="bg-white rounded-xl p-2 rounded-tr-none">
-                          <Text className="text-black text-[24px] font-Regular">
-                            {message.content}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  }
-                })}
+                {messages.map((message, index) => (
+                  <View
+                    key={index}
+                    className={`${
+                      message.role === 'assistant'
+                        ? 'bg-orange-200 rounded-xl p-2 rounded-tl-none'
+                        : message.role === 'user'
+                        ? 'bg-white rounded-xl p-2 rounded-tr-none self-end'
+                        : 'bg-red-200 rounded-xl p-2 items-center self-center'
+                    }`}
+                    style={{width: wp(70)}}>
+                    <Text className="text-black text-[24px] font-Regular">
+                      {message.content}
+                    </Text>
+                  </View>
+                ))}
               </ScrollView>
             </View>
           </View>
         ) : (
-          <View>
-            <View className="items-center space-y-2">
-              <View style={{width: wp(90)}} className="p-2">
-                {Features()}
-              </View>
-              <Image
-                source={require('../../assets/images/Peep(2-1).png')}
-                style={{width: wp(60), height: hp(41)}}
-              />
-            </View>
+          <View className="items-center">
+            <Image
+              source={require('../../assets/images/Peep(2-1).png')}
+              style={{width: wp(60), height: hp(40)}}
+              resizeMode="contain"
+            />
           </View>
         )}
         <View className="flex justify-center items-center mb-10 absolute bottom-0 left-0 right-0">
-          <TouchableOpacity 
-            onPress={recording ? stopListening : startListening} 
-            disabled={isTtsSpeaking}
-          >
+          <TouchableOpacity
+            onPress={recording ? stopListening : startListening}
+            disabled={isTtsSpeaking}>
             {recording ? (
               <Stop height={hp(10)} opacity={isTtsSpeaking ? 0.5 : 1} />
             ) : (
