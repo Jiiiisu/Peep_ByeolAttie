@@ -13,7 +13,7 @@ import {
 } from 'react-native-responsive-screen';
 import {GetInfoByName, GetDetailedInfo} from './getInform';
 import {useNavigation} from '@react-navigation/native';
-import Back from '../../assets/images/Back.svg';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const DisplayInform = () => {
   const navigation = useNavigation();
@@ -61,13 +61,9 @@ const DisplayInform = () => {
   // Render
   function renderHeader() {
     return (
-      <View
-        className="flex-row p-4 items-center z-10"
-        style={{
-          paddingHorizontal: 10,
-        }}>
+      <View className="flex-row mt-4 px-2 items-center z-10">
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Back />
+          <Icon name="navigate-before" size={30} color="#000" />
         </TouchableOpacity>
         <Text className="text-black text-[24px] font-Regular ml-3">
           상세 정보
