@@ -19,9 +19,9 @@ const CustomDrawerContent = props => {
       <Text className="text-2xl font-bold mb-4">메뉴</Text>
       <TouchableOpacity
         className="flex-row items-center p-3 rounded-lg mb-2"
-        onPress={() => props.navigation.navigate('Help')}>
-        <Icon name="help" size={24} color="#000" />
-        <Text className="text-lg ml-4">도움말</Text>
+        onPress={() => props.navigation.navigate('Home')}>
+        <Icon name="home" size={24} color="#000" />
+        <Text className="text-lg ml-4">홈</Text>
       </TouchableOpacity>
       <TouchableOpacity
         className="flex-row items-center p-3 rounded-lg mb-2"
@@ -40,6 +40,12 @@ const CustomDrawerContent = props => {
         onPress={() => props.navigation.navigate('DisplayInform')}>
         <Icon name="book" size={24} color="#000" />
         <Text className="text-lg ml-4">약 정보 테스트</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        className="flex-row items-center p-3 rounded-lg mb-2"
+        onPress={() => props.navigation.navigate('Help')}>
+        <Icon name="help" size={24} color="#000" />
+        <Text className="text-lg ml-4">도움말</Text>
       </TouchableOpacity>
       <TouchableOpacity
         className="flex-row items-center p-3 rounded-lg mb-2"

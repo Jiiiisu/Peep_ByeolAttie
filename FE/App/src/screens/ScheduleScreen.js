@@ -1,5 +1,12 @@
 import React, {useState, useEffect} from 'react';
-import {View, Text, FlatList, TouchableOpacity, Alert} from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  Modal,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PushNotification from 'react-native-push-notification';
 import {
@@ -9,6 +16,8 @@ import {
 import {useNavigation, useRoute} from '@react-navigation/native';
 import hashSum from 'hash-sum';
 import {handleScheduleVoice} from '../screens/ScheduleVoiceHandler';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import Logo from '../../assets/images/Logo.svg';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -17,21 +26,20 @@ export default function ScheduleScreen() {
   const route = useRoute();
 
   const [drugList, setDrugList] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedItemIndex, setSelectedItemIndex] = useState(null);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchDrugList();
-      
-      // 1초 후에 handleScheduleVoice 호출
+
       setTimeout(() => {
         if (route.params?.startVoiceHandler) {
-          // 음성 모드일 경우
           handleScheduleVoice(navigation, () => {});
         } else {
-          // 일반 모드일 경우
-          handleScheduleVoice(navigation, () => {}, false); // false를 추가하여 음성 모드가 아님을 표시
+          handleScheduleVoice(navigation, () => {}, false);
         }
-      }, 1000); // 1초 지연
+      }, 1000);
     });
 
     return unsubscribe;
@@ -70,13 +78,14 @@ export default function ScheduleScreen() {
         },
       },
     ]);
+    setModalVisible(false);
   };
 
   const cancelNotifications = drugInfo => {
     drugInfo.times.forEach(time => {
       drugInfo.days.forEach(day => {
-        const hashId = hashSum(`${drugInfo.name}-${day}-${time}`); // 해시값 생성
-        const notificationId = Math.abs(hashId.hashCode()) % 1000000; // 해시값을 6자리 숫자로 변환
+        const hashId = hashSum(`${drugInfo.name}-${day}-${time}`);
+        const notificationId = Math.abs(hashId.hashCode()) % 1000000;
         PushNotification.cancelLocalNotification({
           id: notificationId.toString(),
         });
@@ -84,21 +93,21 @@ export default function ScheduleScreen() {
     });
   };
 
-  // 해시값 -> 숫자
   String.prototype.hashCode = function () {
     let hash = 0,
       i,
       chr;
     for (i = 0; i < this.length; i++) {
       chr = this.charCodeAt(i);
-      hash = (hash << 5) - hash + chr; // 해시값 계산
-      hash |= 0; // 32비트 정수로 변환
+      hash = (hash << 5) - hash + chr;
+      hash |= 0;
     }
     return hash;
   };
 
   const handleEdit = (item, index) => {
     navigation.navigate('Input1', {editItem: item, editIndex: index});
+    setModalVisible(false);
   };
 
   const formatDays = days => {
@@ -110,9 +119,18 @@ export default function ScheduleScreen() {
 
   const renderItem = ({item, index}) => (
     <View className="bg-yellow-default p-5 m-2 rounded-2xl">
-      <Text className="text-[28px] font-ExtraBold text-orange-default">
-        {item.name}
-      </Text>
+      <View className="flex-row justify-between">
+        <Text className="text-[28px] font-ExtraBold text-orange-default">
+          {item.name}
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            setSelectedItemIndex(index);
+            setModalVisible(true);
+          }}>
+          <Icon name="more-vert" size={30} color="#FF9F23" />
+        </TouchableOpacity>
+      </View>
       <View className="border-b-2 border-b-orange-default mt-3 mb-3" />
       <View className="flex-row justify-between items-center">
         <Text className="text-[24px] font-Bold text-orange-default">
@@ -127,42 +145,58 @@ export default function ScheduleScreen() {
           {item.additionalInfo}
         </Text>
       )}
-      <View className="flex-row justify-end mt-2">
-        <TouchableOpacity
-          className="bg-blue-500 p-2 rounded mr-2"
-          onPress={() => handleEdit(item, index)}>
-          <Text className="text-white font-bold">수정</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className="bg-red-500 p-2 rounded"
-          onPress={() => handleDelete(index)}>
-          <Text className="text-white font-bold">삭제</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 
   return (
-    <View className="flex-1 p-2 bg-default-1">
+    <View className="relative flex-1 bg-default-1">
+      <View className="absolute top-0 left-0 right-0 flex-row items-center justify-center my-8 z-10">
+        <Logo width={wp(40)} height={hp(5)} />
+      </View>
+      <View className="absolute top-0 right-0 my-8 px-4 z-10">
+        <TouchableOpacity onPress={() => navigation.openDrawer()}>
+          <Icon name="menu" size={30} color="#000" />
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={drugList}
         renderItem={renderItem}
         keyExtractor={(item, index) => index.toString()}
+        className="p-2 mt-24"
       />
-      <View className="space-y-2">
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Input1')}
+        className="bg-orange-default p-5 m-4 rounded-full self-end"
+        activeOpacity={0.7}>
+        <View className="flex-row items-center space-x-1">
+          <Icon name="add" size={30} color="#fff" />
+        </View>
+      </TouchableOpacity>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('Input1')}
-          className="bg-orange-50 p-4 rounded-xl space-y-2">
-          <View className="flex-row items-center space-x-1">
-            {/* 아이콘 추가 */}
-            <Text
-              style={{fontSize: wp(4.8)}}
-              className="font-semibold text-gray-700">
-              일정 추가
-            </Text>
+          style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.5)'}}
+          activeOpacity={1}
+          onPressOut={() => setModalVisible(false)}>
+          <View className="bg-white rounded-lg p-4 m-4 absolute bottom-0 left-0 right-0">
+            <TouchableOpacity
+              className="p-3"
+              onPress={() =>
+                handleEdit(drugList[selectedItemIndex], selectedItemIndex)
+              }>
+              <Text className="text-lg">수정</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="p-3"
+              onPress={() => handleDelete(selectedItemIndex)}>
+              <Text className="text-lg text-red-500">삭제</Text>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
-      </View>
+      </Modal>
     </View>
   );
 }

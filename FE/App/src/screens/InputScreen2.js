@@ -16,9 +16,7 @@ import PushNotification from 'react-native-push-notification';
 import Voice from '@react-native-voice/voice';
 import hashSum from 'hash-sum';
 import {speak} from './ScheduleVoiceHandler';
-import Delete from '../../assets/images/Close.svg';
-import Back from '../../assets/images/Back.svg';
-import Close from '../../assets/images/Close.svg';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -82,16 +80,19 @@ export default function InputScreen2({route}) {
   const startVoiceInput = async () => {
     if (currentStep === 'days') {
       setTimeout(async () => {
-        await speak('어떤 요일에 약을 복용하는지 말씀해 주세요. 예를 들어, 월수금, 매일');
+        await speak(
+          '어떤 요일에 약을 복용하는지 말씀해 주세요. 예를 들어, 월수금, 매일',
+        );
         startListening();
       }, 2000);
     } else if (currentStep === 'times') {
       setTimeout(async () => {
-        await speak('약을 복용하는 시간을 말씀해 주세요. 예를 들어 아침 8시, 저녁 7시');
+        await speak(
+          '약을 복용하는 시간을 말씀해 주세요. 예를 들어 아침 8시, 저녁 7시',
+        );
         startListening();
       }, 2000);
-    } 
-    else if (currentStep === 'confirmation') {
+    } else if (currentStep === 'confirmation') {
       setTimeout(async () => {
         await speak('저장하시겠습니까? 저장 또는 아니오로 대답해 주세요.');
         setTimeout(() => startListening(), 1000);
@@ -122,7 +123,8 @@ export default function InputScreen2({route}) {
     }
   };
 
-  const onSpeechResults = e => { //시스템 콜백 함수(다른 함수에서 따로 호출하지 않음)
+  const onSpeechResults = e => {
+    //시스템 콜백 함수(다른 함수에서 따로 호출하지 않음)
     if (e.value && e.value.length > 0) {
       const result = e.value[0].toLowerCase();
       console.log('Recognized speech:', result);
@@ -134,13 +136,19 @@ export default function InputScreen2({route}) {
     console.error('Speech recognition error:', e);
     if (e.error.code === '7' || e.error.code === '5') {
       console.log('No speech input detected. Restarting voice recognition.');
-      ToastAndroid.show('죄송합니다. 다시 한 번 말씀해 주세요.', ToastAndroid.SHORT);
+      ToastAndroid.show(
+        '죄송합니다. 다시 한 번 말씀해 주세요.',
+        ToastAndroid.SHORT,
+      );
       setTimeout(() => {
         startListening();
       }, 2000);
     } else {
       //speak('음성 인식에 문제가 발생했습니다. 다시 시도합니다.');
-      ToastAndroid.show('음성 인식 중 문제가 발생했습니다. 다시 시도합니다.', ToastAndroid.SHORT);
+      ToastAndroid.show(
+        '음성 인식 중 문제가 발생했습니다. 다시 시도합니다.',
+        ToastAndroid.SHORT,
+      );
       setTimeout(() => {
         startVoiceInput();
       }, 2000);
@@ -168,7 +176,10 @@ export default function InputScreen2({route}) {
   };
 
   const handleDaysInput = input => {
-    const recognizedDays = input.toLowerCase().split(/[,\s]+/).map(day => day.replace(/요일/g, ''));
+    const recognizedDays = input
+      .toLowerCase()
+      .split(/[,\s]+/)
+      .map(day => day.replace(/요일/g, ''));
 
     if (recognizedDays.includes('매일')) {
       setSelectedDays(DAYS);
@@ -179,16 +190,18 @@ export default function InputScreen2({route}) {
     }
 
     const validDays = recognizedDays.filter(day => DAYS.includes(day));
-  
+
     if (validDays.length > 0) {
       console.log('요일을 입력받았습니다. 다음 질문으로 넘어갑니다');
       validDays.forEach(day => toggleDay(day));
       setCurrentStep('times');
       //setTimeout(() => startVoiceInput(), 1000);
     } else {
-      speak('인식된 요일이 없습니다. 어떤 요일에 약을 복용하는지 다시 말씀해 주세요.');
+      speak(
+        '인식된 요일이 없습니다. 어떤 요일에 약을 복용하는지 다시 말씀해 주세요.',
+      );
       setTimeout(() => startListening(), 3000);
-    }    
+    }
   };
 
   const convertTime = (time, input) => {
@@ -196,17 +209,26 @@ export default function InputScreen2({route}) {
     hours = parseInt(hours);
     minutes = minutes ? parseInt(minutes) : 0;
 
-    if (input.toLowerCase().includes('오후') || input.toLowerCase().includes('저녁')) { //아침이나 저녁 n시 이렇게 입력하는 경우도 포함
+    if (
+      input.toLowerCase().includes('오후') ||
+      input.toLowerCase().includes('저녁')
+    ) {
+      //아침이나 저녁 n시 이렇게 입력하는 경우도 포함
       if (hours < 12) {
         hours += 12;
       }
-    } else if (input.toLowerCase().includes('오전') || input.toLowerCase().includes('아침')) {
+    } else if (
+      input.toLowerCase().includes('오전') ||
+      input.toLowerCase().includes('아침')
+    ) {
       if (hours === 12) {
         hours = 0;
       }
     }
 
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, '0')}:${minutes
+      .toString()
+      .padStart(2, '0')}`;
   };
 
   const handleTimesInput = async input => {
@@ -223,32 +245,86 @@ export default function InputScreen2({route}) {
 
     //const recognizedTimes = input.split(/[,\s]+/).map(time => timeKeywords[time]).filter(Boolean);
 
-    const koreanToArabic = (koreanNumber) => {
+    const koreanToArabic = koreanNumber => {
       const koreanNumbers = {
-        일: 1, 이: 2, 삼: 3, 사: 4, 오: 5, 육: 6, 칠: 7, 팔: 8, 구: 9,
-        십: 10, 십일: 11, 십이: 12, 십삼: 13, 십사: 14, 십오: 15, 십육: 16, 십칠: 17, 십팔: 18, 십구: 19,
-        이십: 20, 이십일: 21, 이십이: 22, 이십삼: 23, 이십사: 24,
-        한: 1, 두: 2, 세: 3, 네: 4, 다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9, 열: 10, 열한: 11, 열두: 12, 
-        열세: 13, 열네: 14, 열다섯:15, 열여섯: 16, 열일곱: 17, 열여덟: 18, 열아홉: 19, 스물: 20, 스물한: 21, 스물두: 22, 스물세: 23, 스물네: 24,
+        일: 1,
+        이: 2,
+        삼: 3,
+        사: 4,
+        오: 5,
+        육: 6,
+        칠: 7,
+        팔: 8,
+        구: 9,
+        십: 10,
+        십일: 11,
+        십이: 12,
+        십삼: 13,
+        십사: 14,
+        십오: 15,
+        십육: 16,
+        십칠: 17,
+        십팔: 18,
+        십구: 19,
+        이십: 20,
+        이십일: 21,
+        이십이: 22,
+        이십삼: 23,
+        이십사: 24,
+        한: 1,
+        두: 2,
+        세: 3,
+        네: 4,
+        다섯: 5,
+        여섯: 6,
+        일곱: 7,
+        여덟: 8,
+        아홉: 9,
+        열: 10,
+        열한: 11,
+        열두: 12,
+        열세: 13,
+        열네: 14,
+        열다섯: 15,
+        열여섯: 16,
+        열일곱: 17,
+        열여덟: 18,
+        열아홉: 19,
+        스물: 20,
+        스물한: 21,
+        스물두: 22,
+        스물세: 23,
+        스물네: 24,
       };
       return koreanNumbers[koreanNumber] || koreanNumber;
     };
 
-    const times = input.toLowerCase().split(/[,\s]+/).map(time => {
-      if (timeKeywords[time]) {
-        return timeKeywords[time];
-      }
-  
-      const arabicTime = time.replace(/([가-힣]+)/g, (match) => koreanToArabic(match));
-      const timeMatch = arabicTime.match(/(\d{1,2})[시:]?\s*(\d{1,2})?분?/);
-  
-      if (timeMatch) {
-        const [_, hours, minutes] = timeMatch;
-        return convertTime(`${hours.padStart(2, '0')}:${minutes ? minutes.padStart(2, '0') : '00'}`, time);
-      }
-  
-      return null;
-    }).filter(Boolean);
+    const times = input
+      .toLowerCase()
+      .split(/[,\s]+/)
+      .map(time => {
+        if (timeKeywords[time]) {
+          return timeKeywords[time];
+        }
+
+        const arabicTime = time.replace(/([가-힣]+)/g, match =>
+          koreanToArabic(match),
+        );
+        const timeMatch = arabicTime.match(/(\d{1,2})[시:]?\s*(\d{1,2})?분?/);
+
+        if (timeMatch) {
+          const [_, hours, minutes] = timeMatch;
+          return convertTime(
+            `${hours.padStart(2, '0')}:${
+              minutes ? minutes.padStart(2, '0') : '00'
+            }`,
+            time,
+          );
+        }
+
+        return null;
+      })
+      .filter(Boolean);
 
     if (times.length > 0) {
       console.log('시간을 입력받았습니다. 다음 질문으로 넘어갑니다');
@@ -260,15 +336,19 @@ export default function InputScreen2({route}) {
       //setSelectedTime('09:00'); // selectedTime을 초기값으로 설정
 
       setCurrentStep('additionalTime'); // 추가 시간 입력 단계로 변경
-      await speak('예약 시간을 추가하시려면 추가, 없으시면 다음을 말씀해주세요');
+      await speak(
+        '예약 시간을 추가하시려면 추가, 없으시면 다음을 말씀해주세요',
+      );
       setTimeout(() => startListening(), 1000);
     } else {
-      await speak('인식된 시간이 없습니다. 약을 복용하는 시간을 다시 말씀해 주세요.');
+      await speak(
+        '인식된 시간이 없습니다. 약을 복용하는 시간을 다시 말씀해 주세요.',
+      );
       setTimeout(() => startListening(), 3000);
     }
   };
 
-  const handleAdditionalTimeInput = async (input) => {
+  const handleAdditionalTimeInput = async input => {
     const lowerInput = input.toLowerCase();
     if (lowerInput.includes('추가')) {
       setCurrentStep('times'); // 다시 시간 입력 단계로
@@ -277,13 +357,16 @@ export default function InputScreen2({route}) {
     } else if (lowerInput.includes('다음') || lowerInput.includes('아니요')) {
       setCurrentStep('additionalInfo'); // 여기서 additionalInfo 단계로 넘어감
       setTimeout(async () => {
-        await speak('추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항, 복용 주기 등')
-        .then(() => { //speak내용이 실행이 되지 않아서 speak함수 호출 후 바로 startListening을 호출한 것이 원인일 수 있음.
-          startListening();
-        })
-        .catch((error) => {
-          console.error('speak error:', error);
-        });
+        await speak(
+          '추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항, 복용 주기 등',
+        )
+          .then(() => {
+            //speak내용이 실행이 되지 않아서 speak함수 호출 후 바로 startListening을 호출한 것이 원인일 수 있음.
+            startListening();
+          })
+          .catch(error => {
+            console.error('speak error:', error);
+          });
       }, 1000);
     } else {
       await speak('추가 또는 다음이라고 말씀해 주세요.');
@@ -297,20 +380,32 @@ export default function InputScreen2({route}) {
 
     // 3초 후에 확인 질문을 하고 음성 인식 시작
     setTimeout(async () => {
-      await speak('입력이 완료되었습니다. 저장하시겠습니까? 저장 또는 아니요로 대답해 주세요.');
+      await speak(
+        '입력이 완료되었습니다. 저장하시겠습니까? 저장 또는 아니요로 대답해 주세요.',
+      );
       setCurrentStep('confirmation');
       setTimeout(() => startListening(), 1000); // TTS 종료 후 1초 뒤에 음성 인식 시작
     }, 3000);
-};
+  };
 
   const handleConfirmation = input => {
     const lowerInput = input.toLowerCase();
-    if (lowerInput.includes('저장') || lowerInput.includes('자장') || lowerInput.includes('저자') || lowerInput.includes('예')) {
+    if (
+      lowerInput.includes('저장') ||
+      lowerInput.includes('자장') ||
+      lowerInput.includes('저자') ||
+      lowerInput.includes('예')
+    ) {
       handleSave();
-    } else if (lowerInput.includes('아니') || lowerInput.includes('아니오') || lowerInput.includes('아니요') || lowerInput.includes('노')) {
+    } else if (
+      lowerInput.includes('아니') ||
+      lowerInput.includes('아니오') ||
+      lowerInput.includes('아니요') ||
+      lowerInput.includes('노')
+    ) {
       speak('입력이 취소되었습니다. 일정 페이지로 돌아갑니다.');
       setTimeout(() => {
-        navigation.navigate('Schedule', { startVoiceHandler: true });
+        navigation.navigate('Schedule', {startVoiceHandler: true});
       }, 2000);
     } else {
       speak('저장 또는 아니오로 대답해 주세요.');
@@ -498,16 +593,12 @@ export default function InputScreen2({route}) {
   // Render
   function renderHeader() {
     return (
-      <View
-        className="flex-row p-4 items-center justify-between z-10"
-        style={{
-          paddingHorizontal: 10,
-        }}>
+      <View className="flex-row mt-8 px-4 items-center justify-between z-10">
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Back />
+          <Icon name="navigate-before" size={30} color="#000" />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
-          <Close />
+          <Icon name="close" size={30} color="#000" />
         </TouchableOpacity>
       </View>
     );
@@ -561,7 +652,7 @@ export default function InputScreen2({route}) {
                   {time}
                 </Text>
                 <TouchableOpacity onPress={() => handleTimeDelete(time)}>
-                  <Delete className="w-6 h-6" />
+                  <Icon name="clear" size={30} color="#000" />
                 </TouchableOpacity>
               </View>
             ))}
