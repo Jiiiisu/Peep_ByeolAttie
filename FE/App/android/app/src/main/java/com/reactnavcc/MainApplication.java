@@ -16,8 +16,6 @@ import java.util.List;
 import com.wenkesj.voice.VoicePackage;
 import com.imagepicker.ImagePickerPackage; 
 
-import com.reactnativemlkitocr.MlkitOcrPackage;
-
 public class MainApplication extends Application implements ReactApplication {
 
   private final ReactNativeHost mReactNativeHost =
@@ -36,6 +34,7 @@ public class MainApplication extends Application implements ReactApplication {
           //packages.add(new LottiePackage());
           //packages.add(new VoicePackage());
           //packages.add(new MlkitOcrPackage());
+          packages.add(new CustomMlkitOcrPackage()); // 이 줄을 추가. 커스텀 한국어 텍스트 인식 코드 사용을 위해
           return packages;
         }
 

@@ -8030,11 +8030,6 @@ react-native-linear-gradient@^2.6.1:
   resolved "https://registry.yarnpkg.com/react-native-linear-gradient/-/react-native-linear-gradient-2.8.3.tgz#9a116649f86d74747304ee13db325e20b21e564f"
   integrity sha512-KflAXZcEg54PXkLyflaSZQ3PJp4uC4whM7nT/Uot9m0e/qxFV3p6uor1983D1YOBJbJN7rrWdqIjq0T42jOJyA==
 
-react-native-mlkit-ocr@^0.2.2:
-  version "0.2.5"
-  resolved "https://registry.yarnpkg.com/react-native-mlkit-ocr/-/react-native-mlkit-ocr-0.2.5.tgz#0161e9d33508a68b938a5a37f027db18938cd57a"
-  integrity sha512-g8CTgGx5dT5pgnPDw1W33Oa9PZYg10nYd+KuHTjpbJdkqxfWXcoUl/A4vOsPJDz1UM06YnOu7XRSgSXSIAGhjA==
-
 react-native-paper@^5.12.3:
   version "5.12.5"
   resolved "https://registry.yarnpkg.com/react-native-paper/-/react-native-paper-5.12.5.tgz#e255c47f7bf2deb2dd90eaf3831473ef33e400b8"
