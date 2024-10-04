@@ -60,7 +60,8 @@ export default function CameraScreen() {
     });
 
     try {
-      const response = await fetch('http://192.168.45.44:5000/detect', {
+      //'http://192.168.45.44:5000/detect' or 'http://10.30.0.179:5000/detect'
+      const response = await fetch('http://10.30.0.179:5000/detect', {
         method: 'POST',
         body: formData,
         headers: {
@@ -121,7 +122,7 @@ export default function CameraScreen() {
       }
       lastProcessedTime.current = currentTime;
 
-      console.log('Processing frame:', frame);
+      //console.log('Processing frame:', frame);
 
       const photo = await camera.current.takePhoto({
         qualityPrioritization: 'quality',
