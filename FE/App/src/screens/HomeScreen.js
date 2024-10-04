@@ -102,14 +102,20 @@ export default function HomeScreen() {
         Voice.destroy().then(Voice.removeAllListeners);
         Tts.stop();
       };
-    }, [route.params, navigation, resetHomeScreen, initVoice, startListening]),
+    }, [
+      route.params,
+      navigation,
+      resetHomeScreen,
+      initVoice,
+      startListening,
+      messages,
+    ]),
   );
 
   const resetHomeScreen = useCallback(() => {
-    setShowFeatures(true);
     setMessages([]);
     setResults([]);
-    setRecording(false); // 마이크 버튼 상태 초기화
+    setRecording(false);
     setCancelledFromSchedule(false);
     resetVoiceState();
   }, [resetVoiceState]);
@@ -259,7 +265,6 @@ export default function HomeScreen() {
       await Voice.start('ko-KR');
       //await Voice.start('en-US');
       setRecording(true);
-      setShowFeatures(false);
     } catch (e) {
       console.error('startListening error: ', e);
     }
