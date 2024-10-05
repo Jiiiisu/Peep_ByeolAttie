@@ -601,14 +601,20 @@ export default function InputScreen2({route}) {
   function renderHeader() {
     return (
       <View className="flex-row mt-8 px-4 items-center justify-between z-10">
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityLabel="뒤로 가기"
+          accessibilityHint="약 이름과 복용량을 다시 설정합니다">
           <Icon
             name="navigate-before"
             size={30}
             color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'}
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Schedule')}
+          accessibilityLabel="닫기"
+          accessibilityHint="현재 화면을 닫고 일정 화면으로 이동합니다">
           <Icon
             name="close"
             size={30}
@@ -731,7 +737,8 @@ export default function InputScreen2({route}) {
                 : 'bg-orange-default dark:bg-orange-600'
             }`}
             onPress={handleSave}
-            disabled={times.length === 0 || selectedDays.length === 0}>
+            disabled={times.length === 0 || selectedDays.length === 0}
+            accessible={false}>
             <Text className="text-white text-[24px] font-Bold text-center">
               {route.params?.editIndex !== undefined ? '수정' : '저장'}
             </Text>
@@ -768,7 +775,8 @@ export default function InputScreen2({route}) {
                   <TouchableOpacity
                     className="bg-orange-default dark:bg-orange-600 p-4 rounded-xl space-y-2 mt-4"
                     onPress={handleTimeSelect}
-                    accessible={false}>
+                    accessibilityLabel="시간 선택 확인"
+                    accessibilityHint="선택한 시간을 확인합니다.">
                     <Text
                       className="text-white text-[24px] font-Bold text-center"
                       accessible={false}>

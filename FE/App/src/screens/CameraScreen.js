@@ -1,24 +1,32 @@
-import { View, Text, Linking, Image, ScrollView, NativeModules } from 'react-native';
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  Linking,
+  Image,
+  ScrollView,
+  NativeModules,
+} from 'react-native';
+import React, {useRef, useState, useCallback, useEffect} from 'react';
 import {Camera, useCameraDevices} from 'react-native-vision-camera';
 import {TouchableOpacity} from 'react-native-gesture-handler';
-import { useFrameProcessor } from 'react-native-vision-camera';
-import { runOnJS } from 'react-native-reanimated';
+import {useFrameProcessor} from 'react-native-vision-camera';
+import {runOnJS} from 'react-native-reanimated';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import {useNavigation} from '@react-navigation/native';
 import {Shadow} from 'react-native-shadow-2';
-import Back from '../../assets/images/Back.svg';
-import { speak } from './ScheduleVoiceHandler'; // speak함수 import
-
+import {speak} from './ScheduleVoiceHandler'; // speak함수 import
 import RNFS from 'react-native-fs'; // react-native-fs 임포트
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import {useTheme} from '../constants/ThemeContext';
 
-const { CustomMlkitOcrModule } = NativeModules;
+const {CustomMlkitOcrModule} = NativeModules;
 
 export default function CameraScreen() {
   const navigation = useNavigation();
+  const {colorScheme, toggleTheme} = useTheme();
 
   // Camera
   const devices = useCameraDevices();
@@ -55,7 +63,7 @@ export default function CameraScreen() {
   }, []);
 
   // Send image to server
-  const sendImageToServer = async (imagePath) => {
+  const sendImageToServer = async imagePath => {
     const formData = new FormData();
     formData.append('image', {
       uri: `file://${imagePath}`,
@@ -105,8 +113,8 @@ export default function CameraScreen() {
 
     return () => clearInterval(intervalId); // Cleanup interval on unmount
   }, [captureAndSendImage]);
-  
-  const cleanRecognizedText = (text) => {
+
+  const cleanRecognizedText = text => {
     // 각 줄을 개별적으로 처리
     const cleanedLines = text.split('\n').map(line => {
       // 각 줄의 앞뒤 공백 제거 및 연속된 공백을 하나로 줄임
@@ -117,70 +125,80 @@ export default function CameraScreen() {
     return cleanedLines.filter(line => line.length > 0).join('\n');
   };
 
-  const processFrame = useCallback(async (frame) => {
-    if (isSpeaking) {
-      return; // TTS가 진행 중이면 처리 중단
-    }
-
-    try {
-      const currentTime = Date.now();
-      if (currentTime - lastProcessedTime.current < 3000) {
-        // 3초마다 처리
-        return;
+  const processFrame = useCallback(
+    async frame => {
+      if (isSpeaking) {
+        return; // TTS가 진행 중이면 처리 중단
       }
-      lastProcessedTime.current = currentTime;
 
-      //console.log('Processing frame:', frame);
-
-      const photo = await camera.current.takePhoto({
-        qualityPrioritization: 'quality', //빠른 속도를 위해 quality에서 speed로 수정. 'speed'와 'quality' 사이의 균형을 원하면 balanced로 수정
-        flash: 'auto',
-        enableAutoStabilization: true,
-      });
-
-      const tempFilePath = `${RNFS.CachesDirectoryPath}/temp_frame_${Date.now()}.jpg`;
-      await RNFS.moveFile(photo.path, tempFilePath);
-
-      console.log('Starting custom OCR detection');
-      const customResult = await CustomMlkitOcrModule.recognizeText(tempFilePath);
-      console.log('Custom OCR result:', customResult.text);
-
-      const cleanedText = cleanRecognizedText(customResult.text);
-      //setRecognizedText(cleanedText || 'No text recognized');
-
-      // 인식된 텍스트를 음성으로 출력
-      if (cleanedText && cleanedText !== 'No text recognized' && cleanedText !== lastSpokenText.current) {
-        setIsSpeaking(true);
-        lastSpokenText.current = cleanedText;
-        setRecognizedText(cleanedText || 'No text recognized'); // 화면에 표시할 텍스트 업데이트
-        
-        // 7초 타이머 설정
-        speakTimeoutRef.current = setTimeout(() => {
-          setIsSpeaking(false);
-          lastSpokenText.current = '';
-        }, 7000);
-
-        try {
-          await speak(cleanedText);
-        } catch (error) {
-          console.error('TTS Error:', error);
-        } finally {
-          // speak 함수가 7초 이내에 완료되면 타이머를 취소하고 isSpeaking을 false로 설정
-          clearTimeout(speakTimeoutRef.current);
-          setIsSpeaking(false);
-          lastSpokenText.current = '';
+      try {
+        const currentTime = Date.now();
+        if (currentTime - lastProcessedTime.current < 3000) {
+          // 3초마다 처리
+          return;
         }
+        lastProcessedTime.current = currentTime;
+
+        //console.log('Processing frame:', frame);
+
+        const photo = await camera.current.takePhoto({
+          qualityPrioritization: 'quality', //빠른 속도를 위해 quality에서 speed로 수정. 'speed'와 'quality' 사이의 균형을 원하면 balanced로 수정
+          flash: 'auto',
+          enableAutoStabilization: true,
+        });
+
+        const tempFilePath = `${
+          RNFS.CachesDirectoryPath
+        }/temp_frame_${Date.now()}.jpg`;
+        await RNFS.moveFile(photo.path, tempFilePath);
+
+        console.log('Starting custom OCR detection');
+        const customResult = await CustomMlkitOcrModule.recognizeText(
+          tempFilePath,
+        );
+        console.log('Custom OCR result:', customResult.text);
+
+        const cleanedText = cleanRecognizedText(customResult.text);
+        //setRecognizedText(cleanedText || 'No text recognized');
+
+        // 인식된 텍스트를 음성으로 출력
+        if (
+          cleanedText &&
+          cleanedText !== 'No text recognized' &&
+          cleanedText !== lastSpokenText.current
+        ) {
+          setIsSpeaking(true);
+          lastSpokenText.current = cleanedText;
+          setRecognizedText(cleanedText || 'No text recognized'); // 화면에 표시할 텍스트 업데이트
+
+          // 7초 타이머 설정
+          speakTimeoutRef.current = setTimeout(() => {
+            setIsSpeaking(false);
+            lastSpokenText.current = '';
+          }, 7000);
+
+          try {
+            await speak(cleanedText);
+          } catch (error) {
+            console.error('TTS Error:', error);
+          } finally {
+            // speak 함수가 7초 이내에 완료되면 타이머를 취소하고 isSpeaking을 false로 설정
+            clearTimeout(speakTimeoutRef.current);
+            setIsSpeaking(false);
+            lastSpokenText.current = '';
+          }
+        }
+
+        await RNFS.unlink(tempFilePath);
+      } catch (error) {
+        console.error('OCR Error:', error);
+        if (error.message) console.error('Error message:', error.message);
+        if (error.code) console.error('Error code:', error.code);
+        setRecognizedText('OCR Error occurred');
       }
-
-      await RNFS.unlink(tempFilePath);
-
-    } catch (error) {
-      console.error('OCR Error:', error);
-      if (error.message) console.error('Error message:', error.message);
-      if (error.code) console.error('Error code:', error.code);
-      setRecognizedText('OCR Error occurred');
-    }
-  }, [camera, isSpeaking]);
+    },
+    [camera, isSpeaking],
+  );
 
   useEffect(() => {
     console.log('Recognized Text:', recognizedText);
@@ -193,7 +211,7 @@ export default function CameraScreen() {
     };
   }, [recognizedText]);
 
-  const frameProcessor = useFrameProcessor((frame) => {
+  const frameProcessor = useFrameProcessor(frame => {
     'worklet';
     runOnJS(processFrame)(frame);
   }, []);
@@ -205,8 +223,10 @@ export default function CameraScreen() {
 
       // 사진을 특정 폴더에 저장하는 로직 추가
       //const destinationPath = `${RNFS.DocumentDirectoryPath}/images/1.png`;
-      const destinationPath = `${RNFS.DocumentDirectoryPath}/images/photo_${Date.now()}.png`; //매번 새로운 파일 이름으로 저장하도록 수정
-    
+      const destinationPath = `${
+        RNFS.DocumentDirectoryPath
+      }/images/photo_${Date.now()}.png`; //매번 새로운 파일 이름으로 저장하도록 수정
+
       try {
         // 디렉토리 생성(존재하지 않으면)
         const dirPath = `${RNFS.DocumentDirectoryPath}/images`;
@@ -230,14 +250,23 @@ export default function CameraScreen() {
   // Render
   function renderHeader() {
     return (
-      <View
-        className="flex-row p-4 items-center justify-between z-10"
-        style={{
-          paddingHorizontal: 10,
-        }}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Back />
+      <View className="flex-row mt-4 px-2 items-center z-10">
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Home')}
+          accessible={true}
+          accessibilityLabel="뒤로 가기"
+          accessibilityHint="홈 화면으로 돌아갑니다">
+          <Icon
+            name="navigate-before"
+            size={30}
+            color={colorScheme === 'dark' ? '#ffffff' : '#000000'}
+          />
         </TouchableOpacity>
+        <Text
+          className="text-black dark:text-white text-[24px] font-Regular ml-3"
+          accessible={false}>
+          카메라
+        </Text>
       </View>
     );
   }
@@ -247,7 +276,7 @@ export default function CameraScreen() {
       return <View className="flex-1" />;
     } else {
       return (
-        <View className="flex-1">
+        <View className="flex-1 pt-4">
           {takePhotoClicked ? (
             <View className="flex-1">
               {/* Camera */}
@@ -266,13 +295,18 @@ export default function CameraScreen() {
                 <TouchableOpacity
                   className="rounded-full items-center justify-center bg-white"
                   style={{
-                    width: wp(17),
+                    width: wp(20),
                     height: hp(10),
                   }}
                   onPress={() => {
                     takePicture();
                   }}>
-                  <Text style={{fontSize: wp(4.8)}}>O</Text>
+                  <Icon
+                    name="camera-alt"
+                    size={30}
+                    color="#000"
+                    accessible={false}
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -284,10 +318,11 @@ export default function CameraScreen() {
                   backgroundColor: 'rgba(0, 0, 0, 0.5)',
                   paddingVertical: 15,
                   paddingHorizontal: 10,
-                }}
-              >
+                }}>
                 <ScrollView>
-                  <Text style={{ fontSize: wp(4), color: 'white' }}>
+                  <Text
+                    style={{fontSize: wp(4), color: 'white'}}
+                    accessible={false}>
                     {recognizedText || 'Scanning...'}
                   </Text>
                 </ScrollView>
@@ -307,7 +342,7 @@ export default function CameraScreen() {
                 onPress={() => {
                   setTakePhotoClicked(true);
                 }}>
-                <Text>다시찍기</Text>
+                <Text accessible={false}>다시찍기</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -317,7 +352,7 @@ export default function CameraScreen() {
   }
 
   return (
-    <View className="flex-1">
+    <View className="flex-1 bg-default-1 dark:bg-neutral-900">
       {renderHeader()}
       {renderCamera()}
     </View>

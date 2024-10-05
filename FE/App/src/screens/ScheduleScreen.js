@@ -120,7 +120,12 @@ export default function ScheduleScreen() {
   };
 
   const renderItem = ({item, index}) => (
-    <View className="bg-yellow-default dark:bg-gray-800 p-5 m-2 rounded-2xl">
+    <View
+      className="bg-yellow-default dark:bg-gray-800 p-5 m-2 rounded-2xl"
+      accessibilityLabel={item.name}
+      accessibilityHint={`${item.name} ${formatDays(item.days)} ${
+        item.dosage
+      } 복용해야 합니다`}>
       <View className="flex-row justify-between">
         <Text
           className="text-[28px] font-ExtraBold text-orange-default dark:text-white"
@@ -131,7 +136,9 @@ export default function ScheduleScreen() {
           onPress={() => {
             setSelectedItemIndex(index);
             setModalVisible(true);
-          }}>
+          }}
+          accessibilityLabel="더 보기"
+          accessibilityHint="이 항목에 대한 추가 옵션을 엽니다.">
           <Icon
             name="more-vert"
             size={30}
@@ -190,7 +197,9 @@ export default function ScheduleScreen() {
           })
         }
         className="bg-orange-default dark:bg-orange-600 p-5 m-4 rounded-full self-end"
-        activeOpacity={0.7}>
+        activeOpacity={0.7}
+        accessibilityLabel="일정 추가"
+        accessibilityHint="일정을 추가합니다">
         <View className="flex-row items-center space-x-1">
           <Icon name="add" size={30} color="#fff" />
         </View>
@@ -209,7 +218,9 @@ export default function ScheduleScreen() {
               className="p-3"
               onPress={() =>
                 handleEdit(drugList[selectedItemIndex], selectedItemIndex)
-              }>
+              }
+              accessibilityLabel="일정 수정"
+              accessibilityHint="일정을 수정합니다">
               <Text
                 className="text-[24px] font-Regular text-black dark:text-white"
                 accessible={false}>
@@ -218,7 +229,9 @@ export default function ScheduleScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               className="p-3"
-              onPress={() => handleDelete(selectedItemIndex)}>
+              onPress={() => handleDelete(selectedItemIndex)}
+              accessibilityLabel="일정 삭제"
+              accessibilityHint="일정을 삭제합니다">
               <Text
                 className="text-[24px] font-Regular text-red-500 dark:text-red-400"
                 accessible={false}>
