@@ -11,6 +11,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import {Shadow} from 'react-native-shadow-2';
 import Back from '../../assets/images/Back.svg';
+import { speak } from './ScheduleVoiceHandler'; // speak함수 import
 
 import RNFS from 'react-native-fs'; // react-native-fs 임포트
 
@@ -28,6 +29,9 @@ export default function CameraScreen() {
   const [recognizedText, setRecognizedText] = useState('');
   const lastProcessedTime = useRef(0);
   const [serverResponse, setServerResponse] = useState(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const speakTimeoutRef = useRef(null);
+  const lastSpokenText = useRef('');
 
   useEffect(() => {
     const setupCamera = async () => {
@@ -114,6 +118,10 @@ export default function CameraScreen() {
   };
 
   const processFrame = useCallback(async (frame) => {
+    if (isSpeaking) {
+      return; // TTS가 진행 중이면 처리 중단
+    }
+
     try {
       const currentTime = Date.now();
       if (currentTime - lastProcessedTime.current < 3000) {
@@ -125,24 +133,46 @@ export default function CameraScreen() {
       //console.log('Processing frame:', frame);
 
       const photo = await camera.current.takePhoto({
-        qualityPrioritization: 'quality',
+        qualityPrioritization: 'quality', //빠른 속도를 위해 quality에서 speed로 수정. 'speed'와 'quality' 사이의 균형을 원하면 balanced로 수정
         flash: 'auto',
         enableAutoStabilization: true,
       });
 
       const tempFilePath = `${RNFS.CachesDirectoryPath}/temp_frame_${Date.now()}.jpg`;
       await RNFS.moveFile(photo.path, tempFilePath);
-      console.log('Temp file created:', tempFilePath);
 
       console.log('Starting custom OCR detection');
       const customResult = await CustomMlkitOcrModule.recognizeText(tempFilePath);
       console.log('Custom OCR result:', customResult.text);
 
       const cleanedText = cleanRecognizedText(customResult.text);
-      setRecognizedText(cleanedText || 'No text recognized');
+      //setRecognizedText(cleanedText || 'No text recognized');
+
+      // 인식된 텍스트를 음성으로 출력
+      if (cleanedText && cleanedText !== 'No text recognized' && cleanedText !== lastSpokenText.current) {
+        setIsSpeaking(true);
+        lastSpokenText.current = cleanedText;
+        setRecognizedText(cleanedText || 'No text recognized'); // 화면에 표시할 텍스트 업데이트
+        
+        // 7초 타이머 설정
+        speakTimeoutRef.current = setTimeout(() => {
+          setIsSpeaking(false);
+          lastSpokenText.current = '';
+        }, 7000);
+
+        try {
+          await speak(cleanedText);
+        } catch (error) {
+          console.error('TTS Error:', error);
+        } finally {
+          // speak 함수가 7초 이내에 완료되면 타이머를 취소하고 isSpeaking을 false로 설정
+          clearTimeout(speakTimeoutRef.current);
+          setIsSpeaking(false);
+          lastSpokenText.current = '';
+        }
+      }
 
       await RNFS.unlink(tempFilePath);
-      console.log('Temp file deleted');
 
     } catch (error) {
       console.error('OCR Error:', error);
@@ -150,7 +180,18 @@ export default function CameraScreen() {
       if (error.code) console.error('Error code:', error.code);
       setRecognizedText('OCR Error occurred');
     }
-  }, [camera]);
+  }, [camera, isSpeaking]);
+
+  useEffect(() => {
+    console.log('Recognized Text:', recognizedText);
+
+    return () => {
+      // 컴포넌트 언마운트 시 타이머 정리
+      if (speakTimeoutRef.current) {
+        clearTimeout(speakTimeoutRef.current);
+      }
+    };
+  }, [recognizedText]);
 
   const frameProcessor = useFrameProcessor((frame) => {
     'worklet';
