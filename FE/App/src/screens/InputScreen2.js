@@ -536,8 +536,8 @@ export default function InputScreen2({route}) {
     PushNotification.localNotificationSchedule({
       channelId: 'schedule-channel',
       id: notificationId.toString(),
-      title: `약 복용 알림: ${drugInfo.name}`,
-      message: `약을 복용할 시간입니다: ${time}`,
+      title: `삐약삐약`,
+      message: `${drugInfo.name} 복용 시간입니다!`,
       date: notificationTime,
       allowWhileIdle: true,
       repeatType: 'week',
