@@ -97,12 +97,12 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
         cleanupAndNavigate(navigation, resetVoiceState, 'Input1');
       } else if (result.includes('취소')) {
         await speak('알림 설정을 취소합니다');
-        setTimeout(() => {
-          cleanupAndNavigate(navigation, resetVoiceState, 'Home', {
-            resetVoice: true,
-            cancelledFromSchedule: true,
-          });
-        }, 2000);
+        isCancelled = true;
+        stopListening();
+        Voice.destroy().then(Voice.removeAllListeners);
+        if (typeof resetVoiceState === 'function') {
+          resetVoiceState();
+        }
       } else {
         await speak('잘못 들었습니다. 다시 말씀해 주세요.');
         await askForInputMethod();
@@ -183,7 +183,7 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
   };
 
   const startListening = async () => {
-    //if (isCancelled || isSpeaking) return;
+    if (isCancelled) return; // 취소된 경우 음성 인식 시작하지 않음
     try {
       console.log('Starting voice recognition');
       await Voice.start('ko-KR');
@@ -217,6 +217,7 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
       resetVoiceState(); // 컴포넌트 언마운트 시 상태 초기화
     }
     isVoiceMode = false; // 음성 모드 초기화
+    isVoiceRecognitionEnabled = true; // 컴포넌트 언마운트 시 음성 인식 상태 초기화
   };
 };
 
@@ -298,6 +299,10 @@ export const speak = async text => {
       reject(event);
     });
   });
+};
+
+export const resetVoiceRecognition = () => {
+  isVoiceRecognitionEnabled = true;
 };
 
 // export const handleMedicationVoiceResult = (result, navigation) => {

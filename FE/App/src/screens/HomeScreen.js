@@ -259,7 +259,11 @@ export default function HomeScreen() {
         ...prevMessages,
         {role: 'assistant', content: assistantResponse},
       ]);
-      await speak(assistantResponse);
+      try {
+        await speak(assistantResponse);
+      } catch (error) {
+        console.error('TTS error:', error);
+      }
     }
   };
 

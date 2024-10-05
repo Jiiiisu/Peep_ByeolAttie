@@ -8139,11 +8139,6 @@ react-native-vision-camera@2.15.4:
   resolved "https://registry.yarnpkg.com/react-native-vision-camera/-/react-native-vision-camera-2.15.4.tgz#821f0505fc8c63b87c1ae4697d2bb4f670333576"
   integrity sha512-SJXSWH1pu4V3Kj4UuX/vSgOxc9d5wb5+nHqBHd+5iUtVyVLEp0F6Jbbaha7tDoU+kUBwonhlwr2o8oV6NZ7Ibg==
 
-react-native-wheely@^0.6.0:
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/react-native-wheely/-/react-native-wheely-0.6.0.tgz#c977dfc98b5111818a37e6fd4ad9541e9afb50b8"
-  integrity sha512-WDnynKOdHZ3m0VnXF5pC11dXSJZDC/6/e9LuZ6UKs4IjIRI1NTTd14pRwKYEnTgWmJdlDjqJvNSIVbd7EuMxHQ==
-
 react-native-xml2js@^1.0.3:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/react-native-xml2js/-/react-native-xml2js-1.0.3.tgz#7ec64263e04303174326710be3f4ed32d2e8b00b"

@@ -143,7 +143,7 @@ export default function CameraScreen() {
 
         const photo = await camera.current.takePhoto({
           qualityPrioritization: 'quality', //빠른 속도를 위해 quality에서 speed로 수정. 'speed'와 'quality' 사이의 균형을 원하면 balanced로 수정
-          flash: 'auto',
+          flash: 'off', //off나 auto로 설정. 플래시 작동한 뒤에 초점 나가는 현장 있음
           enableAutoStabilization: true,
         });
 
