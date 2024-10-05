@@ -5,7 +5,6 @@ import {
   Image,
   ActivityIndicator,
   TouchableOpacity,
-  AccessibilityInfo,
 } from 'react-native';
 import {ScrollView} from 'react-native-gesture-handler';
 import {
@@ -25,7 +24,6 @@ const DisplayInform = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
 
   const [name, setName] = useState('');
   const [image, setImage] = useState('');
@@ -33,8 +31,6 @@ const DisplayInform = () => {
   const [efcyQesitm, setEfcyQesitm] = useState('');
   const [useMethodQesitm, setUseMethodQesitm] = useState('');
   const [atpnWarnQesitm, setAtpnWarnQesitm] = useState('');
-  const [atpnQesitm, setAtpnQesitm] = useState('');
-  const [seQesitm, setSeQesitm] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -105,7 +101,7 @@ const DisplayInform = () => {
       {renderHeader()}
       <ScrollView
         ref={scrollViewRef}
-        className="px-4 flex-1"
+        className="px-5 flex-1"
         contentContainerStyle={{paddingBottom: 20}}>
         {image && (
           <Image
@@ -113,13 +109,13 @@ const DisplayInform = () => {
             className="mb-2 self-center"
             resizeMode="contain"
             style={{width: wp(60), height: hp(20)}}
-            accessible={true}
-            accessibilityLabel={`${name}의 이미지`}
           />
         )}
 
         {name && (
-          <Text className="text-black text-[30px] font-ExtraBold mb-4 self-center">
+          <Text
+            className="text-black text-[30px] font-ExtraBold mb-4 self-center"
+            accessible={false}>
             {name}
           </Text>
         )}
@@ -130,18 +126,22 @@ const DisplayInform = () => {
         {atpnWarnQesitm && (
           <InfoSection title="경고" content={atpnWarnQesitm} />
         )}
+      </ScrollView>
 
+      <View className="px-5">
         <TouchableOpacity
           onPress={() => navigation.navigate('Home')}
-          className="bg-orange-default p-4 rounded-xl space-y-2 mt-4"
+          className="bg-orange-default p-4 mb-8 rounded-xl"
           accessible={true}
           accessibilityLabel="확인"
           accessibilityHint="홈 화면으로 돌아갑니다">
-          <View className="flex-row items-center justify-center space-x-1">
-            <Text className="text-gray-700 text-[24px] font-Bold">확인</Text>
-          </View>
+          <Text
+            className="text-white text-[24px] font-ExtraBold self-center"
+            accessible={false}>
+            확인
+          </Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </View>
   );
 };
@@ -149,13 +149,15 @@ const DisplayInform = () => {
 const InfoSection = ({title, content, onPress}) => {
   if (!content) return null;
   return (
-    <View
-      className="flex-1 mb-4 bg-white rounded-lg p-4 shadow-md"
-      accessible={true}
-      accessibilityLabel={`${title}: ${content}`}
-      accessibilityRole="button">
-      <Text className="text-black text-[26px] font-Bold mb-2">{title}</Text>
-      <Text className="text-gray-800 text-[24px] font-Regular leading-8">
+    <View className="flex-1 mb-4 bg-white rounded-lg p-4 shadow-md">
+      <Text
+        className="text-black text-[26px] font-Bold mb-2"
+        accessible={false}>
+        {title}
+      </Text>
+      <Text
+        className="text-gray-800 text-[24px] font-Regular leading-8"
+        accessible={false}>
         {content}
       </Text>
     </View>
