@@ -15,11 +15,13 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 import Voice from '@react-native-voice/voice';
 import {speak} from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {useTheme} from '../constants/ThemeContext';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
 export default function InputScreen({route}) {
   const navigation = useNavigation();
+  const {colorScheme, toggleTheme} = useTheme();
 
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
@@ -227,51 +229,76 @@ export default function InputScreen({route}) {
     return (
       <View className="flex-row mt-8 px-4 items-center justify-between z-10">
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="navigate-before" size={30} color="#000" />
+          <Icon
+            name="navigate-before"
+            size={30}
+            color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'}
+          />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
-          <Icon name="close" size={30} color="#000" />
+          <Icon
+            name="close"
+            size={30}
+            color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'}
+          />
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-default-1">
+    <View className="flex-1 bg-default-1 dark:bg-neutral-900">
       {renderHeader()}
       <View className="flex-1 p-5">
-        <Text className="text-black text-[24px] font-Regular">1/2</Text>
-        <Text className="mb-2 text-black text-[30px] font-ExtraBold">
+        <Text
+          className="text-black dark:text-white text-[24px] font-Regular"
+          accessible={false}>
+          1/2
+        </Text>
+        <Text
+          className="mb-2 text-black dark:text-white text-[30px] font-ExtraBold"
+          accessible={false}>
           약 정보
         </Text>
         <ScrollView className="flex-1 mt-5 space-y-10">
           <View className="space-y-2">
-            <Text className="mt-2 text-black text-[24px] font-Regular text-center">
+            <Text
+              className="mt-2 text-black dark:text-white text-[24px] font-Regular text-center"
+              accessible={false}>
               복용할 약의 이름을 입력해 주세요
             </Text>
             <TextInput
-              className="bg-default-2 p-3 rounded-full mt-1 text-center text-black text-[24px] font-ExtraBold"
+              className="bg-default-2 dark:bg-gray-700 p-3 rounded-full mt-1 text-center text-black dark:text-white text-[24px] font-ExtraBold"
               value={name}
               onChangeText={setName}
               placeholder="입력해 주세요"
+              placeholderTextColor={colorScheme === 'dark' ? '#999' : '#666'}
+              accessible={false}
             />
           </View>
 
           <View className="space-y-2">
-            <Text className="mt-2 text-black text-[24px] font-Regular text-center">
+            <Text
+              className="mt-2 text-black dark:text-white text-[24px] font-Regular text-center"
+              accessible={false}>
               한 번에 복용하는 약의 양을 입력해 주세요
             </Text>
             <View className="flex-row items-center justify-center mt-1">
-              <Text className="mt-2 text-black text-[24px] font-Bold text-center">
+              <Text
+                className="mt-2 text-black dark:text-white text-[24px] font-Bold text-center"
+                accessible={false}>
                 1회
               </Text>
               <TextInput
-                className="border-2 border-brown-2 rounded p-2 mx-2 w-14 text-center text-black text-[24px] font-ExtraBold"
+                className="border-2 border-brown-2 dark:border-gray-600 rounded p-2 mx-2 w-14 text-center text-black dark:text-white text-[24px] font-ExtraBold"
                 value={dosage}
                 onChangeText={setDosage}
                 keyboardType="numeric"
+                accessible={false}
               />
-              <Text className="mt-2 text-black text-[24px] font-Bold text-center">
+              <Text
+                className="mt-2 text-black dark:text-white text-[24px] font-Bold text-center"
+                accessible={false}>
                 알
               </Text>
             </View>
@@ -281,11 +308,16 @@ export default function InputScreen({route}) {
         <View className="mt-2">
           <TouchableOpacity
             className={`p-4 rounded-xl space-y-2 ${
-              !name || !dosage ? 'bg-gray-200' : 'bg-orange-default'
+              !name || !dosage
+                ? 'bg-gray-200 dark:bg-gray-700'
+                : 'bg-orange-default dark:bg-orange-600'
             }`}
             onPress={handleNext}
-            disabled={!name || !dosage}>
-            <Text className="text-white text-[24px] font-Bold text-center">
+            disabled={!name || !dosage}
+            accessible={false}>
+            <Text
+              className="text-white text-[24px] font-Bold text-center"
+              accessible={false}>
               다음
             </Text>
           </TouchableOpacity>

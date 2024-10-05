@@ -1,45 +1,59 @@
-import React, {useEffect, useState} from 'react';
-import {View, Text, Switch, StyleSheet} from 'react-native';
-import {useTTS} from '../constants/TTSContext';
-import {AccessibilityInfo} from 'react-native';
+import React, {useState} from 'react';
+import {View, Text, Switch, TouchableOpacity} from 'react-native';
+import {useNavigation} from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import {useTheme} from '../constants/ThemeContext';
 
 export default function SettingScreen() {
-  const {isTTSEnabled, toggleTTS} = useTTS();
-  const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
+  const navigation = useNavigation();
 
-  useEffect(() => {
-    AccessibilityInfo.isScreenReaderEnabled().then(screenReaderEnabled => {
-      setIsScreenReaderEnabled(screenReaderEnabled);
-      if (screenReaderEnabled) {
-        toggleTTS(true);
-      }
-    });
-  }, []);
+  const {colorScheme, toggleTheme} = useTheme();
+  const [isEnabled, setIsEnabled] = useState(false);
+  const toggleSwitch = () => setIsEnabled(!isEnabled);
+
+  // Render
+  function renderHeader() {
+    return (
+      <View className="flex-row mt-4 px-2 items-center z-10">
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Home')}
+          accessible={true}
+          accessibilityLabel="뒤로 가기"
+          accessibilityHint="홈 화면으로 돌아갑니다">
+          <Icon
+            name="navigate-before"
+            size={30}
+            color={colorScheme === 'dark' ? '#ffffff' : '#000000'}
+          />
+        </TouchableOpacity>
+        <Text
+          className="text-black dark:text-white text-[24px] font-Regular ml-3"
+          accessible={false}>
+          설정
+        </Text>
+      </View>
+    );
+  }
 
   return (
-    <View className="felx-1 p-5 bg-default-1">
-      <Text className="mb-5" accessible={false}>
-        설정
-      </Text>
-      <View className="flex-row justify-between items-center mb-4">
-        <Text accessible={false}>TTS 사용</Text>
+    <View className="flex-1 bg-default-1 dark:bg-neutral-900">
+      {renderHeader()}
+      <View className="flex-row justify-between items-center p-5">
+        <Text
+          className="text-[24px] font-Regular dark:text-white"
+          accessible={true}>
+          다크 모드 사용
+        </Text>
         <Switch
-          value={isTTSEnabled}
-          onValueChange={value => !isScreenReaderEnabled && toggleTTS(value)}
-          disabled={isScreenReaderEnabled}
-          accessibilityLabel="TTS 사용 여부 설정"
-          accessibilityHint={
-            isScreenReaderEnabled
-              ? '스크린 리더가 활성화되어 있어 TTS가 자동으로 켜져 있습니다.'
-              : 'TTS 기능을 켜거나 끕니다.'
-          }
+          trackColor={{false: '#767577', true: '#FF9F23'}}
+          thumbColor={isEnabled ? '#f5dd4b' : '#f4f3f4'}
+          value={colorScheme === 'dark'}
+          onValueChange={toggleTheme}
+          accessibilityLabel="다크 모드 사용 여부 설정"
+          accessibilityHint={'다크 모드 기능을 켜거나 끕니다.'}
+          style={{transform: [{scaleX: 1.2}, {scaleY: 1.2}]}}
         />
       </View>
-      {isScreenReaderEnabled && (
-        <Text className="mt-3" accessible={false}>
-          스크린 리더가 활성화되어 있어 TTS가 자동으로 켜져 있습니다.
-        </Text>
-      )}
     </View>
   );
 }

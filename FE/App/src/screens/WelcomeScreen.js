@@ -1,10 +1,11 @@
 import React, {useState, useEffect, useCallback, useRef} from 'react';
-import {View, Text, Image, TouchableOpacity, Animated} from 'react-native';
+import {View, Text, TouchableOpacity, Animated} from 'react-native';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import {speak} from './ScheduleVoiceHandler';
 
 export default function WelcomeScreen() {
   const navigation = useNavigation();
@@ -49,6 +50,7 @@ export default function WelcomeScreen() {
   useFocusEffect(
     useCallback(() => {
       setCurrentPage(0);
+      startSpeak(0);
     }, []),
   );
 
@@ -68,6 +70,16 @@ export default function WelcomeScreen() {
     }).start();
   };
 
+  const startSpeak = async page => {
+    if (page < 1) {
+      const fullText = `${onboardingData[page].title} ${onboardingData[page].description}`;
+      speak(fullText);
+    } else {
+      const fullText = `${onboardingData[page].description}`;
+      speak(fullText);
+    }
+  };
+
   const handleNext = () => {
     if (currentPage < onboardingData.length - 1) {
       fadeOut();
@@ -75,34 +87,34 @@ export default function WelcomeScreen() {
         setCurrentPage(currentPage + 1);
         fadeIn();
       }, 300);
+      startSpeak(currentPage + 1);
     } else {
       navigation.navigate('Home');
     }
   };
 
-  const handleSkip = () => {
-    navigation.navigate('Home');
-  };
-
   // Render
   function renderHeader() {
     return (
-      <View className="flex-row p-8 items-center z-10">
-        <TouchableOpacity
-          className="absolute top-5 right-1"
-          onPress={handleSkip}>
-          <Text className="text-orange-default text-[24px] font-Regular">
-            건너뛰기
-          </Text>
-        </TouchableOpacity>
+      <View className="top-0 left-0 right-0 flex-row items-center justify-center my-8 z-10">
+        {onboardingData.map((_, index) => (
+          <View
+            key={index}
+            className={`w-2.5 h-2.5 rounded-full bg-gray-200 dark:bg-gray-700 mx-1 ${
+              index === currentPage
+                ? 'bg-orange-default dark:bg-orange-600'
+                : ''
+            }`}
+          />
+        ))}
       </View>
     );
   }
 
   return (
-    <View className="flex-1 px-5 bg-default-1">
+    <View className="flex-1 px-5 bg-default-1 dark:bg-neutral-900">
       {renderHeader()}
-      <View className="flex-1 items-center justify-between p-5">
+      <View className="flex-1 items-center justify-around p-5">
         <Animated.Image
           source={onboardingData[currentPage].image}
           style={{width: wp(80), height: hp(50), opacity: fadeAnim}}
@@ -112,34 +124,37 @@ export default function WelcomeScreen() {
 
         <View>
           {onboardingData[currentPage].title && (
-            <Text className="text-orange-default text-[28px] font-ExtraBold mt-8 mb-2 text-center">
+            <Text
+              className="text-orange-default dark:text-orange-600 text-[28px] font-ExtraBold mb-2 text-center"
+              accessible={false}>
               {onboardingData[currentPage].title}
             </Text>
           )}
           {onboardingData[currentPage].description && (
-            <Text className="text-[24px] font-Regular mb-8 text-gray-600 text-center">
+            <Text
+              className="text-[24px] font-Regular text-gray-600 mb-5 dark:text-gray-300 text-center"
+              accessible={false}>
               {onboardingData[currentPage].description}
             </Text>
           )}
         </View>
-
-        <View className="flex-row mb-5">
-          {onboardingData.map((_, index) => (
-            <View
-              key={index}
-              className={`w-2.5 h-2.5 rounded-full bg-gray-200 mx-1 ${
-                index === currentPage ? 'bg-orange-default' : ''
-              }`}
-            />
-          ))}
-        </View>
       </View>
 
       <TouchableOpacity
-        className="bg-orange-default p-4 mb-8 rounded-xl"
+        className="bg-orange-default dark:bg-orange-600 p-4 mb-8 rounded-xl"
         onPress={handleNext}
-        activeOpacity={0.7}>
-        <Text className="text-white text-[24px] font-ExtraBold self-center">
+        activeOpacity={0.7}
+        accessibilityLabel={
+          currentPage === onboardingData.length - 1 ? '시작하기' : '다음'
+        }
+        accessibilityHint={
+          currentPage === onboardingData.length - 1
+            ? '삐약삐약 앱 사용을 시작합니다'
+            : '다음 페이지로 이동합니다'
+        }>
+        <Text
+          className="text-white text-[24px] font-ExtraBold self-center"
+          accessible={false}>
           {currentPage === onboardingData.length - 1 ? '시작하기' : '다음'}
         </Text>
       </TouchableOpacity>

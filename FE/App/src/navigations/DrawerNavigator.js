@@ -9,55 +9,109 @@ import ScheduleScreen from '../screens/ScheduleScreen';
 import SettingScreen from '../screens/SettingScreen';
 import CameraScreen from '../screens/CameraScreen';
 import DisplayInform from '../screens/DisplayInform';
+import {useTheme} from '../constants/ThemeContext';
 
 const Drawer = createDrawerNavigator();
 
 // 커스텀 드로어 콘텐츠 컴포넌트
 const CustomDrawerContent = props => {
+  const {colorScheme, toggleTheme} = useTheme();
+  const isDark = colorScheme === 'dark';
+
   return (
-    <View className="flex-1 p-4">
-      <Text className="text-2xl font-bold mb-4">메뉴</Text>
+    <View className={`flex-1 p-5 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+      <Text
+        className={`text-[30px] font-Bold mb-4 ${
+          isDark ? 'text-white' : 'text-black'
+        }`}>
+        메뉴
+      </Text>
       <TouchableOpacity
-        className="flex-row items-center p-3 rounded-lg mb-2"
+        className={`flex-row items-center p-3 rounded-lg mb-2 ${
+          isDark ? 'bg-gray-700' : 'bg-gray-100'
+        }`}
         onPress={() => props.navigation.navigate('Home')}>
-        <Icon name="home" size={24} color="#000" />
-        <Text className="text-lg ml-4">홈</Text>
+        <Icon name="home" size={24} color={isDark ? '#fff' : '#000'} />
+        <Text
+          className={`text-[24px] font-Regular ml-4 ${
+            isDark ? 'text-white' : 'text-black'
+          }`}>
+          홈
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        className="flex-row items-center p-3 rounded-lg mb-2"
+        className={`flex-row items-center p-3 rounded-lg mb-2 ${
+          isDark ? 'bg-gray-700' : 'bg-gray-100'
+        }`}
         onPress={() => props.navigation.navigate('Schedule')}>
-        <Icon name="schedule" size={24} color="#000" />
-        <Text className="text-lg ml-4">복용 약 일정</Text>
+        <Icon name="schedule" size={24} color={isDark ? '#fff' : '#000'} />
+        <Text
+          className={`text-[24px] font-Regular ml-4 ${
+            isDark ? 'text-white' : 'text-black'
+          }`}>
+          복용 약 일정
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        className="flex-row items-center p-3 rounded-lg mb-2"
+        className={`flex-row items-center p-3 rounded-lg mb-2 ${
+          isDark ? 'bg-gray-700' : 'bg-gray-100'
+        }`}
         onPress={() => props.navigation.navigate('Camera')}>
-        <Icon name="camera" size={24} color="#000" />
-        <Text className="text-lg ml-4">카메라 테스트</Text>
+        <Icon name="camera" size={24} color={isDark ? '#fff' : '#000'} />
+        <Text
+          className={`text-[24px] font-Regular ml-4 ${
+            isDark ? 'text-white' : 'text-black'
+          }`}>
+          카메라 테스트
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        className="flex-row items-center p-3 rounded-lg mb-2"
+        className={`flex-row items-center p-3 rounded-lg mb-2 ${
+          isDark ? 'bg-gray-700' : 'bg-gray-100'
+        }`}
         onPress={() => props.navigation.navigate('DisplayInform')}>
-        <Icon name="book" size={24} color="#000" />
-        <Text className="text-lg ml-4">약 정보 테스트</Text>
+        <Icon name="book" size={24} color={isDark ? '#fff' : '#000'} />
+        <Text
+          className={`text-[24px] font-Regular ml-4 ${
+            isDark ? 'text-white' : 'text-black'
+          }`}>
+          약 정보 테스트
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        className="flex-row items-center p-3 rounded-lg mb-2"
+        className={`flex-row items-center p-3 rounded-lg mb-2 ${
+          isDark ? 'bg-gray-700' : 'bg-gray-100'
+        }`}
         onPress={() => props.navigation.navigate('Help')}>
-        <Icon name="help" size={24} color="#000" />
-        <Text className="text-lg ml-4">도움말</Text>
+        <Icon name="help" size={24} color={isDark ? '#fff' : '#000'} />
+        <Text
+          className={`text-[24px] font-Regular ml-4 ${
+            isDark ? 'text-white' : 'text-black'
+          }`}>
+          도움말
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        className="flex-row items-center p-3 rounded-lg mb-2"
+        className={`flex-row items-center p-3 rounded-lg mb-2 ${
+          isDark ? 'bg-gray-700' : 'bg-gray-100'
+        }`}
         onPress={() => props.navigation.navigate('Setting')}>
-        <Icon name="settings" size={24} color="#000" />
-        <Text className="text-lg ml-4">설정</Text>
+        <Icon name="settings" size={24} color={isDark ? '#fff' : '#000'} />
+        <Text
+          className={`text-[24px] font-Regular ml-4 ${
+            isDark ? 'text-white' : 'text-black'
+          }`}>
+          설정
+        </Text>
       </TouchableOpacity>
     </View>
   );
 };
 
 const DrawerNavigator = () => {
+  const {colorScheme} = useTheme();
+  const isDark = colorScheme === 'dark';
+
   return (
     <Drawer.Navigator
       drawerContent={props => <CustomDrawerContent {...props} />}
@@ -65,7 +119,7 @@ const DrawerNavigator = () => {
         headerShown: false,
         drawerPosition: 'right',
         drawerStyle: {
-          backgroundColor: '#f0f0f0',
+          backgroundColor: isDark ? '#1F2937' : '#f0f0f0',
           width: 250,
         },
       }}>

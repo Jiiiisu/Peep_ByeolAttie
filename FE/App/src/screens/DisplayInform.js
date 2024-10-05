@@ -15,12 +15,12 @@ import {GetInfoByName, GetDetailedInfo} from './getInform';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {speak} from './ScheduleVoiceHandler';
-import {useTTS} from '../constants/TTSContext';
+import {useTheme} from '../constants/ThemeContext';
 
 const DisplayInform = () => {
   const navigation = useNavigation();
   const scrollViewRef = useRef(null);
-  const {isTTSEnabled} = useTTS();
+  const {colorScheme, toggleTheme} = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,10 +57,10 @@ const DisplayInform = () => {
     };
     fetchData();
 
-    if (!loading && isTTSEnabled) {
+    if (!loading) {
       startSpeak();
     }
-  }, [loading, isTTSEnabled]);
+  }, [loading]);
 
   const startSpeak = async () => {
     const fullText = `${name}. 이 약은 ${className}입니다. 
@@ -78,9 +78,15 @@ const DisplayInform = () => {
           accessible={true}
           accessibilityLabel="뒤로 가기"
           accessibilityHint="이전 화면으로 돌아갑니다">
-          <Icon name="navigate-before" size={30} color="#000" />
+          <Icon
+            name="navigate-before"
+            size={30}
+            color={colorScheme === 'dark' ? '#ffffff' : '#000000'}
+          />
         </TouchableOpacity>
-        <Text className="text-black text-[24px] font-Regular ml-3">
+        <Text
+          className="text-black dark:text-white text-[24px] font-Regular ml-3"
+          accessible={false}>
           상세 정보
         </Text>
       </View>
@@ -89,15 +95,31 @@ const DisplayInform = () => {
 
   if (loading)
     return (
-      <View className="flex-1 bg-default-1 items-center justify-center">
-        <ActivityIndicator size="large" color="#FF9F23" />
+      <View className="flex-1 bg-default-1 dark:bg-neutral-900 items-center justify-center">
+        <ActivityIndicator
+          size="large"
+          color={colorScheme ? '#FF9F23' : '#EA580C'}
+        />
       </View>
     );
   if (error)
-    return <Text className="text-black text-[24px] font-Regular">{error}</Text>;
+    return (
+      <View className="flex-1 bg-default-1 dark:bg-neutral-900 items-center justify-center">
+        <Text
+          className="text-black dark:text-white text-[24px] pb-2 font-Regular"
+          accessible={false}>
+          {error}
+        </Text>
+        <Text
+          className="text-black dark:text-white text-[24px] font-Regular"
+          accessible={false}>
+          앱을 다시 시작해주세요
+        </Text>
+      </View>
+    );
 
   return (
-    <View className="flex-1 bg-default-1">
+    <View className="flex-1 bg-default-1 dark:bg-neutral-900">
       {renderHeader()}
       <ScrollView
         ref={scrollViewRef}
@@ -114,7 +136,7 @@ const DisplayInform = () => {
 
         {name && (
           <Text
-            className="text-black text-[30px] font-ExtraBold mb-4 self-center"
+            className="text-black dark:text-white text-[30px] font-ExtraBold mb-4 self-center"
             accessible={false}>
             {name}
           </Text>
@@ -131,7 +153,7 @@ const DisplayInform = () => {
       <View className="px-5">
         <TouchableOpacity
           onPress={() => navigation.navigate('Home')}
-          className="bg-orange-default p-4 mb-8 rounded-xl"
+          className="bg-orange-default dark:bg-orange-600 p-4 mb-8 rounded-xl"
           accessible={true}
           accessibilityLabel="확인"
           accessibilityHint="홈 화면으로 돌아갑니다">
@@ -149,14 +171,14 @@ const DisplayInform = () => {
 const InfoSection = ({title, content, onPress}) => {
   if (!content) return null;
   return (
-    <View className="flex-1 mb-4 bg-white rounded-lg p-4 shadow-md">
+    <View className="flex-1 mb-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md">
       <Text
-        className="text-black text-[26px] font-Bold mb-2"
+        className="text-black dark:text-white text-[26px] font-Bold mb-2"
         accessible={false}>
         {title}
       </Text>
       <Text
-        className="text-gray-800 text-[24px] font-Regular leading-8"
+        className="text-gray-800 dark:text-gray-200 text-[24px] font-Regular leading-8"
         accessible={false}>
         {content}
       </Text>

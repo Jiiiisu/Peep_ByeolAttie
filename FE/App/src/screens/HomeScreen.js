@@ -25,7 +25,10 @@ import {initTts, speak} from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Logo from '../../assets/images/Logo.svg';
 import Recording from '../../assets/images/Recording.svg';
+import RecordingDark from '../../assets/images/Recording(Dark).svg';
 import Stop from '../../assets/images/Stop.svg';
+import StopDark from '../../assets/images/Stop(Dark).svg';
+import {useTheme} from '../constants/ThemeContext';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -37,6 +40,7 @@ export default function HomeScreen() {
   const [isTtsSpeaking, setIsTtsSpeaking] = useState(false);
   const voiceInitialized = useRef(false);
   const [cancelledFromSchedule, setCancelledFromSchedule] = useState(false); //'취소' 후 다시 시작할 때의 동작을 위한 상태변수
+  const {colorScheme, toggleTheme} = useTheme();
 
   const resetVoiceState = useCallback(() => {
     setRecording(false);
@@ -283,13 +287,20 @@ export default function HomeScreen() {
   };
 
   return (
-    <View className="relative flex-1 bg-default-1">
+    <View className="relative flex-1 bg-default-1 dark:bg-neutral-900">
       <View className="absolute top-0 left-0 right-0 flex-row items-center justify-center my-8 z-10">
         <Logo width={wp(40)} height={hp(5)} />
       </View>
       <View className="absolute top-0 right-0 my-8 px-4 z-10">
-        <TouchableOpacity onPress={() => navigation.openDrawer()}>
-          <Icon name="menu" size={30} color="#000" />
+        <TouchableOpacity
+          onPress={() => navigation.openDrawer()}
+          accessibilityLabel="메뉴 열기"
+          accessibilityHint="앱의 메뉴를 엽니다">
+          <Icon
+            name="menu"
+            size={30}
+            color={colorScheme === 'dark' ? '#ffffff' : '#000000'}
+          />
         </TouchableOpacity>
       </View>
       <SafeAreaView className="flex-1 mx-5 mt-24">
@@ -297,7 +308,7 @@ export default function HomeScreen() {
           <View className="flex-1 space-y-2">
             <View
               style={{height: hp(58)}}
-              className="p-4 rounded-3xl bg-default-2">
+              className="p-4 rounded-3xl bg-default-2 dark:bg-gray-800">
               <ScrollView
                 bounces={false}
                 className="space-y-4"
@@ -307,13 +318,15 @@ export default function HomeScreen() {
                     key={index}
                     className={`${
                       message.role === 'assistant'
-                        ? 'bg-orange-200 rounded-xl p-2 rounded-tl-none'
+                        ? 'bg-orange-200 dark:bg-orange-600 rounded-xl p-2 rounded-tl-none'
                         : message.role === 'user'
-                        ? 'bg-white rounded-xl p-2 rounded-tr-none self-end'
-                        : 'bg-red-200 rounded-xl p-2 items-center self-center'
+                        ? 'bg-white dark:bg-gray-600 rounded-xl p-2 rounded-tr-none self-end'
+                        : 'bg-red-200 dark:bg-red-600 rounded-xl p-2 items-center self-center'
                     }`}
                     style={{width: wp(70)}}>
-                    <Text className="text-black text-[24px] font-Regular">
+                    <Text
+                      className="text-black dark:text-white text-[24px] font-Regular"
+                      accessible={false}>
                       {message.content}
                     </Text>
                   </View>
@@ -333,9 +346,22 @@ export default function HomeScreen() {
         <View className="flex justify-center items-center mb-10 absolute bottom-0 left-0 right-0">
           <TouchableOpacity
             onPress={recording ? stopListening : startListening}
-            disabled={isTtsSpeaking}>
+            disabled={isTtsSpeaking}
+            accessibilityLabel={recording ? '녹음 중지' : '녹음 시작'}
+            accessibilityHint={
+              recording ? '녹음을 중지합니다.' : '녹음을 시작합니다.'
+            }>
             {recording ? (
-              <Stop height={hp(10)} opacity={isTtsSpeaking ? 0.5 : 1} />
+              colorScheme === 'dark' ? (
+                <StopDark height={hp(10)} opacity={isTtsSpeaking ? 0.5 : 1} />
+              ) : (
+                <Stop height={hp(10)} opacity={isTtsSpeaking ? 0.5 : 1} />
+              )
+            ) : colorScheme === 'dark' ? (
+              <RecordingDark
+                height={hp(10)}
+                opacity={isTtsSpeaking ? 0.5 : 1}
+              />
             ) : (
               <Recording height={hp(10)} opacity={isTtsSpeaking ? 0.5 : 1} />
             )}

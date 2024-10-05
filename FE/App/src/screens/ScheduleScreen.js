@@ -18,12 +18,14 @@ import hashSum from 'hash-sum';
 import {handleScheduleVoice} from '../screens/ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Logo from '../../assets/images/Logo.svg';
+import {useTheme} from '../constants/ThemeContext';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
 export default function ScheduleScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+  const {colorScheme, toggleTheme} = useTheme();
 
   const [drugList, setDrugList] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -118,9 +120,11 @@ export default function ScheduleScreen() {
   };
 
   const renderItem = ({item, index}) => (
-    <View className="bg-yellow-default p-5 m-2 rounded-2xl">
+    <View className="bg-yellow-default dark:bg-gray-800 p-5 m-2 rounded-2xl">
       <View className="flex-row justify-between">
-        <Text className="text-[28px] font-ExtraBold text-orange-default">
+        <Text
+          className="text-[28px] font-ExtraBold text-orange-default dark:text-white"
+          accessible={false}>
           {item.name}
         </Text>
         <TouchableOpacity
@@ -128,34 +132,48 @@ export default function ScheduleScreen() {
             setSelectedItemIndex(index);
             setModalVisible(true);
           }}>
-          <Icon name="more-vert" size={30} color="#FF9F23" />
+          <Icon
+            name="more-vert"
+            size={30}
+            color={colorScheme === 'dark' ? '#fff' : '#FF9F23'}
+          />
         </TouchableOpacity>
       </View>
-      <View className="border-b-2 border-b-orange-default mt-3 mb-3" />
+      <View className="border-b-2 border-b-orange-default dark:border-b-white mt-3 mb-3" />
       <View className="flex-row justify-between items-center">
-        <Text className="text-[24px] font-Bold text-orange-default">
+        <Text
+          className="text-[24px] font-Bold text-orange-default dark:text-white"
+          accessible={false}>
           {formatDays(item.days)}
         </Text>
-        <Text className="text-[24px] font-Bold text-orange-default">
+        <Text
+          className="text-[24px] font-Bold text-orange-default dark:text-white"
+          accessible={false}>
           {item.dosage}
         </Text>
       </View>
       {item.additionalInfo && item.additionalInfo.trim() !== '' && (
-        <Text className="text-[24px] font-Bold text-orange-default">
-          {item.additionalInfo}
+        <Text
+          className="text-[24px] font-Bold text-orange-default dark:text-white"
+          accessible={false}>
+          ※{item.additionalInfo}
         </Text>
       )}
     </View>
   );
 
   return (
-    <View className="relative flex-1 bg-default-1">
+    <View className="relative flex-1 bg-default-1 dark:bg-neutral-900">
       <View className="absolute top-0 left-0 right-0 flex-row items-center justify-center my-8 z-10">
         <Logo width={wp(40)} height={hp(5)} />
       </View>
       <View className="absolute top-0 right-0 my-8 px-4 z-10">
         <TouchableOpacity onPress={() => navigation.openDrawer()}>
-          <Icon name="menu" size={30} color="#000" />
+          <Icon
+            name="menu"
+            size={30}
+            color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'}
+          />
         </TouchableOpacity>
       </View>
       <FlatList
@@ -171,7 +189,7 @@ export default function ScheduleScreen() {
             dosage: '',
           })
         }
-        className="bg-orange-default p-5 m-4 rounded-full self-end"
+        className="bg-orange-default dark:bg-orange-600 p-5 m-4 rounded-full self-end"
         activeOpacity={0.7}>
         <View className="flex-row items-center space-x-1">
           <Icon name="add" size={30} color="#fff" />
@@ -186,18 +204,26 @@ export default function ScheduleScreen() {
           style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.5)'}}
           activeOpacity={1}
           onPressOut={() => setModalVisible(false)}>
-          <View className="bg-white rounded-lg p-4 m-4 absolute bottom-0 left-0 right-0">
+          <View className="bg-white dark:bg-neutral-800 rounded-lg p-4 m-4 absolute bottom-0 left-0 right-0">
             <TouchableOpacity
               className="p-3"
               onPress={() =>
                 handleEdit(drugList[selectedItemIndex], selectedItemIndex)
               }>
-              <Text className="text-lg">수정</Text>
+              <Text
+                className="text-[24px] font-Regular text-black dark:text-white"
+                accessible={false}>
+                수정
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="p-3"
               onPress={() => handleDelete(selectedItemIndex)}>
-              <Text className="text-lg text-red-500">삭제</Text>
+              <Text
+                className="text-[24px] font-Regular text-red-500 dark:text-red-400"
+                accessible={false}>
+                삭제
+              </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

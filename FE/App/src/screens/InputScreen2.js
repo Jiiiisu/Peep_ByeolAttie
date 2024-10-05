@@ -18,11 +18,13 @@ import hashSum from 'hash-sum';
 import {speak} from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import TimePicker from '../components/TimePicker';
+import {useTheme} from '../constants/ThemeContext';
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 export default function InputScreen2({route}) {
   const navigation = useNavigation();
+  const {colorScheme, toggleTheme} = useTheme();
 
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
@@ -600,26 +602,42 @@ export default function InputScreen2({route}) {
     return (
       <View className="flex-row mt-8 px-4 items-center justify-between z-10">
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="navigate-before" size={30} color="#000" />
+          <Icon
+            name="navigate-before"
+            size={30}
+            color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'}
+          />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
-          <Icon name="close" size={30} color="#000" />
+          <Icon
+            name="close"
+            size={30}
+            color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'}
+          />
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-default-1">
+    <View className="flex-1 bg-default-1 dark:bg-neutral-900">
       {renderHeader()}
       <View className="flex-1 p-5">
-        <Text className="text-black text-[24px] font-Regular">2/2</Text>
-        <Text className="mb-2 text-black text-[30px] font-ExtraBold">
+        <Text
+          className="text-black dark:text-white text-[24px] font-Regular"
+          accessible={false}>
+          2/2
+        </Text>
+        <Text
+          className="mb-2 text-black dark:text-white text-[30px] font-ExtraBold"
+          accessible={false}>
           복약 일정
         </Text>
         <ScrollView className="flex-1 mt-5 space-y-10">
           <View className="space-y-2">
-            <Text className="mt-2 text-black text-[24px] font-Regular text-center">
+            <Text
+              className="mt-2 text-black dark:text-white text-[24px] font-Regular text-center"
+              accessible={false}>
               어떤 요일에 약을 복용하는지 입력해 주세요
             </Text>
             <View className="flex-row justify-between mt-2">
@@ -628,16 +646,18 @@ export default function InputScreen2({route}) {
                   key={day}
                   className={`w-10 h-10 rounded-full flex items-center justify-center ${
                     selectedDays.includes(day)
-                      ? 'bg-orange-default'
-                      : 'border-2 border-default-2 '
+                      ? 'bg-orange-default dark:bg-orange-600'
+                      : 'border-2 border-default-2 dark:border-neutral-700'
                   }`}
-                  onPress={() => toggleDay(day)}>
+                  onPress={() => toggleDay(day)}
+                  accessible={false}>
                   <Text
                     className={
                       selectedDays.includes(day)
                         ? 'text-white text-[24px] font-Bold text-center'
-                        : 'text-black text-[24px] font-Bold text-center'
-                    }>
+                        : 'text-black dark:text-white text-[24px] font-Bold text-center'
+                    }
+                    accessible={false}>
                     {day}
                   </Text>
                 </TouchableOpacity>
@@ -646,40 +666,59 @@ export default function InputScreen2({route}) {
           </View>
 
           <View className="space-y-2">
-            <Text className="mt-2 text-black text-[24px] font-Regular text-center">
+            <Text
+              className="mt-2 text-black dark:text-white text-[24px] font-Regular text-center"
+              accessible={false}>
               약을 복용하는 시간을 입력해 주세요
             </Text>
             {times.map((time, index) => (
               <View
                 key={index}
-                className="bg-default-2 p-3 rounded-full flex-row items-center justify-between mt-1">
-                <Text className="text-black text-[24px] font-ExtraBold text-center flex-1">
+                className="bg-default-2 dark:bg-neutral-800 p-3 rounded-full flex-row items-center justify-between mt-1">
+                <Text
+                  className="text-black dark:text-white text-[24px] font-ExtraBold text-center flex-1"
+                  accessible={false}>
                   {time}
                 </Text>
-                <TouchableOpacity onPress={() => handleTimeDelete(time)}>
-                  <Icon name="clear" size={30} color="#000" />
+                <TouchableOpacity
+                  onPress={() => handleTimeDelete(time)}
+                  accessible={false}>
+                  <Icon
+                    name="clear"
+                    size={30}
+                    color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'}
+                  />
                 </TouchableOpacity>
               </View>
             ))}
             <TouchableOpacity
-              className="bg-orange-default p-4 rounded-xl space-y-2 mt-1"
-              onPress={handleAddTime}>
-              <Text className=" text-white text-[24px] font-Bold text-center">
+              className="bg-orange-default dark:bg-orange-600 p-4 rounded-xl space-y-2 mt-1"
+              onPress={handleAddTime}
+              accessible={false}>
+              <Text
+                className="text-white text-[24px] font-Bold text-center"
+                accessible={false}>
                 추가
               </Text>
             </TouchableOpacity>
           </View>
 
           <View className="space-y-2">
-            <Text className="mt-2 text-black text-[24px] font-Regular text-center">
+            <Text
+              className="mt-2 text-black dark:text-white text-[24px] font-Regular text-center"
+              accessible={false}>
               추가로 필요한 정보를 입력해 주세요
             </Text>
             <TextInput
-              className="bg-default-2 p-3 rounded-full mt-1 text-center text-black text-[20px] font-ExtraBold"
+              className="bg-default-2 dark:bg-neutral-800 p-3 rounded-full mt-1 text-center text-black dark:text-white text-[20px] font-ExtraBold"
               value={additionalInfo}
               onChangeText={setAdditionalInfo}
               placeholder="알레르기 정보나 주의 사항"
+              placeholderTextColor={
+                colorScheme === 'dark' ? '#9CA3AF' : '#6B7280'
+              }
               multiline
+              accessible={false}
             />
           </View>
         </ScrollView>
@@ -688,8 +727,8 @@ export default function InputScreen2({route}) {
           <TouchableOpacity
             className={`p-4 rounded-xl space-y-2 ${
               times.length === 0 || selectedDays.length === 0
-                ? 'bg-gray-200'
-                : 'bg-orange-default'
+                ? 'bg-gray-200 dark:bg-gray-700'
+                : 'bg-orange-default dark:bg-orange-600'
             }`}
             onPress={handleSave}
             disabled={times.length === 0 || selectedDays.length === 0}>
@@ -703,7 +742,7 @@ export default function InputScreen2({route}) {
           <TouchableWithoutFeedback onPress={() => setShowTimePicker(false)}>
             <View className="flex-1 justify-end items-center bg-black/40">
               <TouchableWithoutFeedback>
-                <View className="bg-white rounded-t-3xl p-5 shadow-lg w-full">
+                <View className="bg-white dark:bg-neutral-800 rounded-t-3xl p-5 shadow-lg w-full">
                   <TimePicker
                     initialHour={
                       selectedTime ? selectedTime.split(':')[0] : '00'
@@ -727,9 +766,12 @@ export default function InputScreen2({route}) {
                     visibleCount={3}
                   />
                   <TouchableOpacity
-                    className="bg-orange-default p-4 rounded-xl space-y-2 mt-4"
-                    onPress={handleTimeSelect}>
-                    <Text className="text-white text-[24px] font-Bold text-center">
+                    className="bg-orange-default dark:bg-orange-600 p-4 rounded-xl space-y-2 mt-4"
+                    onPress={handleTimeSelect}
+                    accessible={false}>
+                    <Text
+                      className="text-white text-[24px] font-Bold text-center"
+                      accessible={false}>
                       확인
                     </Text>
                   </TouchableOpacity>

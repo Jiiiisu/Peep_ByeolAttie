@@ -22,6 +22,7 @@ import {
   BUTTON_HEIGHT,
   GAP,
 } from '../constants/TimePicker_values';
+import {useTheme} from '../constants/ThemeContext';
 
 const isPM = date => date.getHours() >= 12;
 
@@ -33,7 +34,7 @@ const TimePicker = ({
   buttonHeight,
   visibleCount,
 }) => {
-  if (visibleCount % 2 === 0) throw new Error('visibleCount must be odd');
+  const {colorScheme, toggleTheme} = useTheme();
 
   const initialDate = new Date();
   initialDate.setHours(initialHour ? parseInt(initialHour) : 0);
@@ -199,42 +200,71 @@ const TimePicker = ({
                   style={{opacity}}
                   label={item}
                   onPress={props.getOnPress(item)}
+                  colorScheme={colorScheme}
                 />
               );
             })}
           </ScrollView>
         );
       })}
-      <OverlayView />
+      <OverlayView colorScheme={colorScheme} />
     </View>
   );
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const Button = ({style, label, onPress}) => {
+const Button = ({style, label, onPress, colorScheme}) => {
   return (
     <AnimatedPressable style={style} onPress={onPress}>
       <View style={styles.button}>
-        <Text style={styles.buttonLabel}>{label}</Text>
+        <Text
+          style={[
+            styles.buttonLabel,
+            {color: colorScheme === 'dark' ? '#FFFFFF' : '#000000'},
+          ]}>
+          {label}
+        </Text>
       </View>
     </AnimatedPressable>
   );
 };
 
-const OverlayView = () => {
+const OverlayView = ({colorScheme}) => {
   return (
     <View
       pointerEvents={'none'}
       style={[StyleSheet.absoluteFill, styles.overlay]}>
       <View style={styles.overlayVisibleView}>
-        <View style={styles.overlayVisibleViewInner} />
+        <View
+          style={[
+            styles.overlayVisibleViewInner,
+            {borderColor: colorScheme === 'dark' ? '#FFFFFF' : '#c8c8c8'},
+          ]}
+        />
         <GapView />
-        <View style={styles.overlayVisibleViewInner} />
+        <View
+          style={[
+            styles.overlayVisibleViewInner,
+            {borderColor: colorScheme === 'dark' ? '#FFFFFF' : '#c8c8c8'},
+          ]}
+        />
         <GapView>
-          <Text style={{position: 'absolute', textAlign: 'center'}}>{':'}</Text>
+          <Text
+            style={{
+              position: 'absolute',
+              textAlign: 'center',
+              color: colorScheme === 'dark' ? '#FFFFFF' : '#000000',
+            }}>
+            {':'}
+          </Text>
         </GapView>
-        <View style={styles.overlayVisibleViewInner} />
+        <View
+          style={[
+            styles.overlayVisibleViewInner,
+            {borderColor: colorScheme === 'dark' ? '#FFFFFF' : '#c8c8c8'},
+          ]}
+        />
       </View>
     </View>
   );
@@ -280,7 +310,6 @@ const styles = StyleSheet.create({
     flex: 1,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#c8c8c8',
   },
 });
 
