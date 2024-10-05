@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -28,7 +28,22 @@ export default function InputScreen({route}) {
   const [recognizedDrugName, setRecognizedDrugName] = useState('');
   const [recognizedDosage, setRecognizedDosage] = useState('');
 
+  const resetState = useCallback(() => {
+    setName('');
+    setDosage('');
+    setIsVoiceMode(false);
+    setCurrentStep('name');
+  }, []);
+
   useEffect(() => {
+    resetState();
+    if (route.params?.name) {
+      setName(route.params.name);
+    }
+    if (route.params?.dosage) {
+      setDosage(route.params.dosage);
+    }
+
     if (route.params?.isVoiceMode) {
       setIsVoiceMode(route.params.isVoiceMode);
     }

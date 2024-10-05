@@ -17,6 +17,7 @@ import Voice from '@react-native-voice/voice';
 import hashSum from 'hash-sum';
 import {speak} from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import TimePicker from '../components/TimePicker';
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -565,6 +566,10 @@ export default function InputScreen2({route}) {
   };
 
   const handleAddTime = () => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    setSelectedTime(`${hours}:${minutes}`);
     setShowTimePicker(true);
   };
 
@@ -699,31 +704,32 @@ export default function InputScreen2({route}) {
             <View className="flex-1 justify-end items-center bg-black/40">
               <TouchableWithoutFeedback>
                 <View className="bg-white rounded-t-3xl p-5 shadow-lg w-full">
-                  <View className="flex-row items-center justify-center mt-2">
-                    <WheelPicker
-                      selectedIndex={parseInt(selectedTime.split(':')[0])}
-                      options={hours}
-                      onChange={index =>
-                        setSelectedTime(
-                          `${hours[index]}:${selectedTime.split(':')[1]}`,
-                        )
-                      }
-                    />
-                    <Text className="text-[24px] font-Regular">:</Text>
-                    <WheelPicker
-                      selectedIndex={parseInt(selectedTime.split(':')[1])}
-                      options={minutes}
-                      onChange={index =>
-                        setSelectedTime(
-                          `${selectedTime.split(':')[0]}:${minutes[index]}`,
-                        )
-                      }
-                    />
-                  </View>
+                  <TimePicker
+                    initialHour={
+                      selectedTime ? selectedTime.split(':')[0] : '00'
+                    }
+                    initialMinute={
+                      selectedTime ? selectedTime.split(':')[1] : '00'
+                    }
+                    onTimeChange={newTime => {
+                      // newTime을 문자열 형식으로 변환하여 저장
+                      const formattedTime = `${newTime
+                        .getHours()
+                        .toString()
+                        .padStart(2, '0')}:${newTime
+                        .getMinutes()
+                        .toString()
+                        .padStart(2, '0')}`;
+                      setSelectedTime(formattedTime);
+                    }}
+                    width={300}
+                    buttonHeight={60}
+                    visibleCount={3}
+                  />
                   <TouchableOpacity
-                    className="bg-orange-default p-4 rounded-xl space-y-2 mt-1"
+                    className="bg-orange-default p-4 rounded-xl space-y-2 mt-4"
                     onPress={handleTimeSelect}>
-                    <Text className=" text-white text-[24px] font-Bold text-center">
+                    <Text className="text-white text-[24px] font-Bold text-center">
                       확인
                     </Text>
                   </TouchableOpacity>

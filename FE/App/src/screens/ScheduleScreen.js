@@ -165,7 +165,12 @@ export default function ScheduleScreen() {
         className="p-2 mt-24"
       />
       <TouchableOpacity
-        onPress={() => navigation.navigate('Input1')}
+        onPress={() =>
+          navigation.navigate('Input1', {
+            name: '',
+            dosage: '',
+          })
+        }
         className="bg-orange-default p-5 m-4 rounded-full self-end"
         activeOpacity={0.7}>
         <View className="flex-row items-center space-x-1">
