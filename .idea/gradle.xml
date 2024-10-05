@@ -29,6 +29,10 @@
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-fs/android" />
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-gesture-handler/android" />
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-gradle-plugin" />
+            <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-image-crop-picker/android" />
+            <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-image-manipulator/android" />
+            <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-image-picker/android" />
+            <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-image-resizer/android" />
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-linear-gradient/android" />
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-push-notification/android" />
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-reanimated/android" />

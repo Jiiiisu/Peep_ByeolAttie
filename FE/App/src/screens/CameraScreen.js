@@ -40,6 +40,9 @@ export default function CameraScreen() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const speakTimeoutRef = useRef(null);
   const lastSpokenText = useRef('');
+  // keras 결과 전달받음 //////////////////////////////////////////////
+  const [classificationResult, setClassificationResult] = useState(null);
+  /////////////////////////////////////////////////////////////////
 
   useEffect(() => {
     const setupCamera = async () => {
@@ -62,7 +65,7 @@ export default function CameraScreen() {
     }
   }, []);
 
-  // Send image to server
+  // Send image to detect server
   const sendImageToServer = async imagePath => {
     const formData = new FormData();
     formData.append('image', {
@@ -89,6 +92,34 @@ export default function CameraScreen() {
     }
   };
 
+  // Send image to predict server
+  const sendImageToClassificationServer = async imagePath => {
+    const formData = new FormData();
+    formData.append('image', {
+      uri: `file://${imagePath}`,
+      name: 'image.jpg',
+      type: 'image/jpeg',
+    });
+
+    try {
+      const response = await fetch('http://10.30.0.179:5000/predict', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const result = await response.json();
+      console.log('Classification server response:', result);
+      setClassificationResult(result);
+      return result;
+    } catch (error) {
+      console.error('Error sending image to classification server:', error);
+      return null;
+    }
+  };
+
   // Capture and send image every 3 seconds
   const captureAndSendImage = useCallback(async () => {
     if (camera.current) {
@@ -99,7 +130,30 @@ export default function CameraScreen() {
         });
 
         console.log('Photo taken:', photo);
-        await sendImageToServer(photo.path);
+        ////////////////////////////////////////////////////////////////////
+        const detectionResult = await sendImageToServer(photo.path);
+
+        if (detectionResult) {
+          // 약이 감지되면 사진을 저장하고 분류 서버로 전송
+          const destinationPath = `${
+            RNFS.DocumentDirectoryPath
+          }/images/photo_${Date.now()}.png`;
+          await RNFS.moveFile(photo.path, destinationPath);
+          setImageData(destinationPath);
+
+          const classificationResult = await sendImageToClassificationServer(
+            destinationPath,
+          );
+          if (classificationResult) {
+            const message = `감지된 약: ${
+              classificationResult.class
+            }, 신뢰도: ${classificationResult.confidence.toFixed(2)}`;
+            setRecognizedText(message);
+            speak(message);
+            console.log('약 감지 결과:', message);
+          }
+        }
+        ////////////////////////////////////////////////////////////////////////////
       } catch (error) {
         console.error('Error capturing or sending image:', error);
       }
@@ -192,8 +246,12 @@ export default function CameraScreen() {
         await RNFS.unlink(tempFilePath);
       } catch (error) {
         console.error('OCR Error:', error);
-        if (error.message) console.error('Error message:', error.message);
-        if (error.code) console.error('Error code:', error.code);
+        if (error.message) {
+          console.error('Error message:', error.message);
+        }
+        if (error.code) {
+          console.error('Error code:', error.code);
+        }
         setRecognizedText('OCR Error occurred');
       }
     },

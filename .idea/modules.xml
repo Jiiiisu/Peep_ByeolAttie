@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/FE/App/src/DL/DL.iml" filepath="$PROJECT_DIR$/FE/App/src/DL/DL.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/Peep_ByeolAttie.iml" filepath="$PROJECT_DIR$/.idea/Peep_ByeolAttie.iml" />
+      <module fileurl="file://$PROJECT_DIR$/BE/yolov5/yolov5.iml" filepath="$PROJECT_DIR$/BE/yolov5/yolov5.iml" />
     </modules>
   </component>
 </project>
