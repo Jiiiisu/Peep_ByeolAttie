@@ -10,7 +10,6 @@ import {
   ToastAndroid,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import WheelPicker from 'react-native-wheely';
 import {useNavigation} from '@react-navigation/native';
 import PushNotification from 'react-native-push-notification';
 import Voice from '@react-native-voice/voice';
@@ -35,6 +34,8 @@ export default function InputScreen2({route}) {
   const [selectedDays, setSelectedDays] = useState([]);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [currentStep, setCurrentStep] = useState('days');
+  const [selectedHour, setSelectedHour] = useState('09');
+  const [selectedMinute, setSelectedMinute] = useState('00');
 
   useEffect(() => {
     const now = new Date();
@@ -207,136 +208,80 @@ export default function InputScreen2({route}) {
     }
   };
 
-  const convertTime = (time, input) => {
-    let [hours, minutes] = time.split(':');
-    hours = parseInt(hours);
-    minutes = minutes ? parseInt(minutes) : 0;
-
-    if (
-      input.toLowerCase().includes('오후') ||
-      input.toLowerCase().includes('저녁')
-    ) {
-      //아침이나 저녁 n시 이렇게 입력하는 경우도 포함
-      if (hours < 12) {
-        hours += 12;
-      }
-    } else if (
-      input.toLowerCase().includes('오전') ||
-      input.toLowerCase().includes('아침')
-    ) {
-      if (hours === 12) {
-        hours = 0;
-      }
-    }
-
-    return `${hours.toString().padStart(2, '0')}:${minutes
-      .toString()
-      .padStart(2, '0')}`;
-  };
-
   const handleTimesInput = async input => {
-    // const timeKeywords = {
-    //   아침: {hours: '08', minutes: '00'},
-    //   점심: {hours: '12', minutes: '00'},
-    //   저녁: {hours: '19', minutes: '00'},
-    // };
     const timeKeywords = {
       아침: '08:00',
       점심: '12:00',
       저녁: '19:00',
     };
 
-    //const recognizedTimes = input.split(/[,\s]+/).map(time => timeKeywords[time]).filter(Boolean);
-
     const koreanToArabic = koreanNumber => {
       const koreanNumbers = {
-        일: 1,
-        이: 2,
-        삼: 3,
-        사: 4,
-        오: 5,
-        육: 6,
-        칠: 7,
-        팔: 8,
-        구: 9,
-        십: 10,
-        십일: 11,
-        십이: 12,
-        십삼: 13,
-        십사: 14,
-        십오: 15,
-        십육: 16,
-        십칠: 17,
-        십팔: 18,
-        십구: 19,
-        이십: 20,
-        이십일: 21,
-        이십이: 22,
-        이십삼: 23,
-        이십사: 24,
-        한: 1,
-        두: 2,
-        세: 3,
-        네: 4,
-        다섯: 5,
-        여섯: 6,
-        일곱: 7,
-        여덟: 8,
-        아홉: 9,
-        열: 10,
-        열한: 11,
-        열두: 12,
-        열세: 13,
-        열네: 14,
-        열다섯: 15,
-        열여섯: 16,
-        열일곱: 17,
-        열여덟: 18,
-        열아홉: 19,
-        스물: 20,
-        스물한: 21,
-        스물두: 22,
-        스물세: 23,
-        스물네: 24,
+        일: 1, 이: 2, 삼: 3, 사: 4, 오: 5, 육: 6, 칠: 7, 팔: 8, 구: 9, 십: 10,
+        십일: 11, 십이: 12, 십삼: 13, 십사: 14, 십오: 15, 십육: 16, 십칠: 17, 십팔: 18, 십구: 19, 이십: 20,
+        이십일: 21, 이십이: 22, 이십삼: 23, 이십사: 24,
+        한: 1, 두: 2, 세: 3, 네: 4, 다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9,
+        열: 10, 열한: 11, 열두: 12, 열세: 13, 열네: 14, 열다섯: 15, 열여섯: 16, 열일곱: 17, 열여덟: 18, 열아홉: 19,
+        스물: 20, 스물한: 21, 스물두: 22, 스물세: 23, 스물네: 24,
       };
       return koreanNumbers[koreanNumber] || koreanNumber;
     };
 
-    const times = input
-      .toLowerCase()
-      .split(/[,\s]+/)
-      .map(time => {
-        if (timeKeywords[time]) {
-          return timeKeywords[time];
+    const convertTime = (hours, minutes, period) => {
+      hours = parseInt(koreanToArabic(hours));
+      minutes = minutes ? parseInt(minutes) : 0;
+    
+      if (period === '오후' || period === '저녁') {
+        //아침이나 저녁 n시 이렇게 입력하는 경우도 포함
+        if (hours < 12) hours += 12;
+      } else if (period === '오전' || period === '아침') {
+        if (hours === 12) hours = 0;
+      }
+  
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    };
+
+    const processTimePhrase = phrase => {
+      if (timeKeywords[phrase]) {
+        return timeKeywords[phrase];
+      }
+  
+      const match = phrase.match(/^(아침|점심|저녁|오전|오후)?\s*(\d{1,2})(시)?\s*(\d{1,2})?(분)?$/);
+      if (match) {
+        const [_, period, hours, __, minutes] = match;
+        return convertTime(hours, minutes, period);
+      }
+  
+      return null;
+    };
+  
+    const times = input.toLowerCase().split(/[,]+/).map(t => t.trim());
+  
+    const convertedTimes = times.flatMap(phrase => {
+      const words = phrase.split(/\s+/);
+      if (words.length === 1) {
+        const time = processTimePhrase(words[0]);
+        return time ? [time] : [];
+      } else if (words.length === 2) {
+        if (timeKeywords[words[0]] && timeKeywords[words[1]]) {
+          return [timeKeywords[words[0]], timeKeywords[words[1]]];
+        } else {
+          const time = processTimePhrase(phrase);
+          return time ? [time] : [];
         }
+      }
+      return [];
+    });
 
-        const arabicTime = time.replace(/([가-힣]+)/g, match =>
-          koreanToArabic(match),
-        );
-        const timeMatch = arabicTime.match(/(\d{1,2})[시:]?\s*(\d{1,2})?분?/);
-
-        if (timeMatch) {
-          const [_, hours, minutes] = timeMatch;
-          return convertTime(
-            `${hours.padStart(2, '0')}:${
-              minutes ? minutes.padStart(2, '0') : '00'
-            }`,
-            time,
-          );
-        }
-
-        return null;
-      })
-      .filter(Boolean);
-
-    if (times.length > 0) {
+    if (convertedTimes.length > 0) {
       console.log('시간을 입력받았습니다. 다음 질문으로 넘어갑니다');
-      times.forEach(time => {
-        handleTimeSelect(time);
-        setTimes(prevTimes => [...prevTimes, time]);
+      console.log('인식된 시간:', convertedTimes);
+  
+      setTimes(prevTimes => {
+        const updatedTimes = [...prevTimes, ...convertedTimes];
+        console.log('업데이트된 시간 목록:', updatedTimes);
+        return updatedTimes;
       });
-      //setSelectedTime(times[times.length - 1]); // 마지막으로 입력받은 시간을 selectedTime으로 설정 // WheelPicker의 상태도 업데이트
-      //setSelectedTime('09:00'); // selectedTime을 초기값으로 설정
 
       setCurrentStep('additionalTime'); // 추가 시간 입력 단계로 변경
       await speak(
@@ -356,7 +301,7 @@ export default function InputScreen2({route}) {
     if (lowerInput.includes('추가')) {
       setCurrentStep('times'); // 다시 시간 입력 단계로
       await speak('추가할 시간을 말씀해 주세요.');
-      setTimeout(() => startListening(), 1000);
+      //setTimeout(() => startListening(), 1000); //speak함수 출력된 뒤에 음성인식 받으면서 '약을 복용하는 시간을 말씀해 주세요. 예를 들어 아침 8시, 저녁 7시'가 출력되기 때문
     } else if (lowerInput.includes('다음') || lowerInput.includes('아니요')) {
       setCurrentStep('additionalInfo'); // 여기서 additionalInfo 단계로 넘어감
       setTimeout(async () => {
@@ -386,8 +331,10 @@ export default function InputScreen2({route}) {
       await speak(
         '입력이 완료되었습니다. 저장하시겠습니까? 저장 또는 아니요로 대답해 주세요.',
       );
-      setCurrentStep('confirmation');
-      setTimeout(() => startListening(), 1000); // TTS 종료 후 1초 뒤에 음성 인식 시작
+      setTimeout(() => {
+        startListening();
+        setCurrentStep('confirmation');
+      }, 1000); // TTS 종료 후 1초 뒤에 음성 인식 시작하고 스텝 변경
     }, 3000);
   };
 
@@ -576,7 +523,7 @@ export default function InputScreen2({route}) {
   };
 
   const handleTimeSelect = () => {
-    setTimes([...times, selectedTime]);
+    setTimes(prevTimes => [...prevTimes, selectedTime]);
     setShowTimePicker(false);
   };
 

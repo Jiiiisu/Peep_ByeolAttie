@@ -15,7 +15,7 @@ import {
 } from 'react-native-responsive-screen';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import hashSum from 'hash-sum';
-import {handleScheduleVoice} from '../screens/ScheduleVoiceHandler';
+import {handleScheduleVoice, cleanupAndNavigate} from '../screens/ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Logo from '../../assets/images/Logo.svg';
 import {useTheme} from '../constants/ThemeContext';
@@ -190,12 +190,10 @@ export default function ScheduleScreen() {
         className="p-2 mt-24"
       />
       <TouchableOpacity
-        onPress={() =>
-          navigation.navigate('Input1', {
-            name: '',
-            dosage: '',
-          })
-        }
+        onPress={() => {
+          const isVoiceMode = false; // 텍스트 모드로 설정
+          cleanupAndNavigate(navigation, () => {}, 'Input1', { name: '', dosage: '', isVoiceMode });
+        }}
         className="bg-orange-default dark:bg-orange-600 p-5 m-4 rounded-full self-end"
         activeOpacity={0.7}
         accessibilityLabel="일정 추가"

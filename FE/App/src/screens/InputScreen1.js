@@ -27,24 +27,15 @@ export default function InputScreen({route}) {
   const [dosage, setDosage] = useState('');
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [currentStep, setCurrentStep] = useState('name');
-  const [recognizedDrugName, setRecognizedDrugName] = useState('');
-  const [recognizedDosage, setRecognizedDosage] = useState('');
-
-  const resetState = useCallback(() => {
-    setName('');
-    setDosage('');
-    setIsVoiceMode(false);
-    setCurrentStep('name');
-  }, []);
 
   useEffect(() => {
-    resetState();
-    if (route.params?.name) {
-      setName(route.params.name);
-    }
-    if (route.params?.dosage) {
-      setDosage(route.params.dosage);
-    }
+    // if (route.params?.name) {
+    //   setName(route.params.name);
+    // } else setName('');
+    
+    // if (route.params?.dosage) {
+    //   setDosage(route.params.dosage);
+    // } else setDosage('');
 
     if (route.params?.isVoiceMode) {
       setIsVoiceMode(route.params.isVoiceMode);

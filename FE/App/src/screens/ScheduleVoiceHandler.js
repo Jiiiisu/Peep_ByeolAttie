@@ -8,38 +8,38 @@ let isCancelled = false;
 let isVoiceMode = false; // 음성모드 or 텍스트모드 상태 변수
 let isSpeaking = false; //TTS가 말하고 있는지 추적하는 변수
 
+export const cleanupAndNavigate = (navigation, resetVoiceState, screenName, params = {}) => {
+  isCancelled = true;
+  stopListening();
+  Tts.stop();
+  clearTimeout(timeoutId);
+  Voice.destroy().then(Voice.removeAllListeners);
+  if (typeof resetVoiceState === 'function') {
+    resetVoiceState(); // HomeScreen에서 전달받은 함수 호출
+  }
+  if (screenName === 'Home') {
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'Home', params: {...params, resetVoice: true}}],
+    });
+  }
+  if (screenName === 'Input1') {
+    navigation.navigate(screenName, {
+      ...params,
+      name: '',
+      dosage: '',
+      isVoiceMode,
+    });
+  } else {
+    navigation.navigate(screenName, {...params, isVoiceMode}); // isVoiceMode 상태를 전달
+  }
+};
+
 export const handleScheduleVoice = async (navigation, resetVoiceState) => {
   // Voice 모듈 초기화 및 이벤트 리스너 설정
   isCancelled = false;
   let medicationName = '';
   let currentStep = 'inputMethod';
-
-  const cleanupAndNavigate = (screenName, params = {}) => {
-    isCancelled = true;
-    stopListening();
-    Tts.stop();
-    clearTimeout(timeoutId);
-    Voice.destroy().then(Voice.removeAllListeners);
-    if (typeof resetVoiceState === 'function') {
-      resetVoiceState(); // HomeScreen에서 전달받은 함수 호출
-    }
-    if (screenName === 'Home') {
-      navigation.reset({
-        index: 0,
-        routes: [{name: 'Home', params: {...params, resetVoice: true}}],
-      });
-    }
-    if (screenName === 'Input1') {
-      navigation.navigate(screenName, {
-        ...params,
-        name: '',
-        dosage: '',
-        isVoiceMode,
-      });
-    } else {
-      navigation.navigate(screenName, {...params, isVoiceMode}); // isVoiceMode 상태를 전달
-    }
-  };
 
   const initVoice = async () => {
     try {
@@ -89,16 +89,16 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
         isVoiceMode = true; // 음성 모드로 설정
         // Input1로 화면 전환
         setTimeout(() => {
-          cleanupAndNavigate('Input1', {isVoiceMode});
+          cleanupAndNavigate(navigation, resetVoiceState, 'Input1', {isVoiceMode});
         }, 2000);
         currentStep = 'name';
       } else if (result.includes('텍스트')) {
         isVoiceMode = false; // 텍스트 모드로 설정
-        cleanupAndNavigate('Input1');
+        cleanupAndNavigate(navigation, resetVoiceState, 'Input1');
       } else if (result.includes('취소')) {
         await speak('알림 설정을 취소합니다');
         setTimeout(() => {
-          cleanupAndNavigate('Home', {
+          cleanupAndNavigate(navigation, resetVoiceState, 'Home', {
             resetVoice: true,
             cancelledFromSchedule: true,
           });
@@ -202,21 +202,6 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
     }
   };
 
-  const stopListening = async () => {
-    if (isListening) {
-      try {
-        await Voice.stop();
-        isListening = false;
-        clearTimeout(timeoutId);
-        if (typeof resetVoiceState === 'function') {
-          resetVoiceState(); // 음성 인식 중지 시 상태 초기화
-        }
-      } catch (e) {
-        console.error('Failed to stop voice recognition', e);
-      }
-    }
-  };
-
   // Voice 모듈 초기화
   await initVoice();
   // 입력 방법 묻기
@@ -233,6 +218,21 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
     }
     isVoiceMode = false; // 음성 모드 초기화
   };
+};
+
+export const stopListening = async () => {
+  if (isListening) {
+    try {
+      await Voice.stop();
+      isListening = false;
+      clearTimeout(timeoutId);
+      if (typeof resetVoiceState === 'function') {
+        resetVoiceState(); // 음성 인식 중지 시 상태 초기화
+      }
+    } catch (e) {
+      console.error('Failed to stop voice recognition', e);
+    }
+  }
 };
 
 // Tts 초기화 함수 추가

@@ -50,7 +50,6 @@
     "react-native-unimodules": "^0.14.10",
     "react-native-vector-icons": "^9.2.0",
     "react-native-vision-camera": "2.15.4",
-    "react-native-wheely": "^0.6.0",
     "react-native-xml2js": "^1.0.3",
     "xml2js": "^0.6.2"
   },
