@@ -15,7 +15,7 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {Shadow} from 'react-native-shadow-2';
 import {speak} from './ScheduleVoiceHandler'; // speak함수 import
 import RNFS from 'react-native-fs'; // react-native-fs 임포트
@@ -38,8 +38,9 @@ export default function CameraScreen() {
   const lastProcessedTime = useRef(0);
   const [serverResponse, setServerResponse] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const speakTimeoutRef = useRef(null);
   const lastSpokenText = useRef('');
+  const ttsTimeoutRef = useRef(null);
+  const ttsStartTimeRef = useRef(null);
   // keras 결과 전달받음 //////////////////////////////////////////////
   const [classificationResult, setClassificationResult] = useState(null);
   /////////////////////////////////////////////////////////////////
@@ -55,6 +56,29 @@ export default function CameraScreen() {
 
     setupCamera();
   }, []);
+
+  // 뒤로가기 시 카메라 리소스 정리
+  useFocusEffect(
+    useCallback(() => {
+      const setupCamera = async () => {
+        try {
+          await requestCameraPermission();
+        } catch (error) {
+          console.error('Setup error:', error);
+        }
+      };
+
+      setupCamera(); // 화면이 포커스를 받았을 때 카메라 설정
+
+      return () => {
+        console.log('Cleaning up camera resources');
+        // 필요 시 카메라 리소스 정리
+        lastSpokenText.current = ''; // lastSpokenText 초기화
+        setRecognizedText(''); // 화면에 표시되는 텍스트 초기화
+        //camera.current?.stop(); //필요시 사용할 수 있음
+      };
+    }, []),
+  );
 
   // Handler
   const requestCameraPermission = React.useCallback(async () => {
@@ -75,8 +99,8 @@ export default function CameraScreen() {
     });
 
     try {
-      //'http://192.168.45.44:5000/detect' or 'http://10.30.0.179:5000/detect'
-      const response = await fetch('http://10.30.0.179:5000/detect', {
+      //'http://192.168.45.44:5000/detect'
+      const response = await fetch('http://13.124.74.207:5000/detect', {
         method: 'POST',
         body: formData,
         headers: {
@@ -87,6 +111,14 @@ export default function CameraScreen() {
       const result = await response.json();
       console.log('Server response:', result.result);
       setServerResponse(result.result);
+
+      if (!result.result) {
+        await speak("약물 인식이 불가능합니다.");
+      }
+      else{
+        await speak("약물 인식을 하고 있습니다.");
+      }
+
     } catch (error) {
       console.error('Error sending image to server:', error);
     }
@@ -182,7 +214,15 @@ export default function CameraScreen() {
   const processFrame = useCallback(
     async frame => {
       if (isSpeaking) {
-        return; // TTS가 진행 중이면 처리 중단
+        // TTS가 진행 중일 때 7초가 지났는지 확인
+        const currentTime = Date.now();
+        if (currentTime - ttsStartTimeRef.current >= 7000) {
+          setIsSpeaking(false);
+          clearTimeout(ttsTimeoutRef.current);
+          lastSpokenText.current = '';
+        } else {
+          return; // 7초가 지나지 않았다면 계속 진행 중
+        }
       }
 
       try {
@@ -192,8 +232,6 @@ export default function CameraScreen() {
           return;
         }
         lastProcessedTime.current = currentTime;
-
-        //console.log('Processing frame:', frame);
 
         const photo = await camera.current.takePhoto({
           qualityPrioritization: 'quality', //빠른 속도를 위해 quality에서 speed로 수정. 'speed'와 'quality' 사이의 균형을 원하면 balanced로 수정
@@ -221,41 +259,26 @@ export default function CameraScreen() {
           cleanedText !== 'No text recognized' &&
           cleanedText !== lastSpokenText.current
         ) {
-          setIsSpeaking(true);
           lastSpokenText.current = cleanedText;
           setRecognizedText(cleanedText || 'No text recognized'); // 화면에 표시할 텍스트 업데이트
 
-          // 7초 타이머 설정
-          speakTimeoutRef.current = setTimeout(() => {
+          setIsSpeaking(true);
+          ttsStartTimeRef.current = Date.now(); // TTS 시작 시간 기록
+          speak(cleanedText);
+
+          // 7초 후에 TTS 상태 초기화
+          ttsTimeoutRef.current = setTimeout(() => {
             setIsSpeaking(false);
             lastSpokenText.current = '';
           }, 7000);
-
-          try {
-            await speak(cleanedText);
-          } catch (error) {
-            console.error('TTS Error:', error);
-          } finally {
-            // speak 함수가 7초 이내에 완료되면 타이머를 취소하고 isSpeaking을 false로 설정
-            clearTimeout(speakTimeoutRef.current);
-            setIsSpeaking(false);
-            lastSpokenText.current = '';
-          }
         }
-
         await RNFS.unlink(tempFilePath);
       } catch (error) {
         console.error('OCR Error:', error);
-        if (error.message) {
-          console.error('Error message:', error.message);
-        }
-        if (error.code) {
-          console.error('Error code:', error.code);
-        }
         setRecognizedText('OCR Error occurred');
       }
     },
-    [camera, isSpeaking],
+    [camera, isSpeaking]
   );
 
   useEffect(() => {
@@ -263,8 +286,8 @@ export default function CameraScreen() {
 
     return () => {
       // 컴포넌트 언마운트 시 타이머 정리
-      if (speakTimeoutRef.current) {
-        clearTimeout(speakTimeoutRef.current);
+      if (ttsTimeoutRef.current) {
+        clearTimeout(ttsTimeoutRef.current);
       }
     };
   }, [recognizedText]);

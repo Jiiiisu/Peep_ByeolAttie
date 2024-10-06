@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  ToastAndroid,
 } from 'react-native';
 import {
   widthPercentageToDP as wp,
@@ -27,68 +28,61 @@ export default function InputScreen({route}) {
   const [dosage, setDosage] = useState('');
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [currentStep, setCurrentStep] = useState('name');
-
+  const [listeningTimeout, setListeningTimeout] = useState(null); // 음성인식 타이머
+  
   useEffect(() => {
-    // if (route.params?.name) {
-    //   setName(route.params.name);
-    // } else setName('');
-
-    // if (route.params?.dosage) {
-    //   setDosage(route.params.dosage);
-    // } else setDosage('');
-
-    if (route.params?.isVoiceMode) {
-      setIsVoiceMode(route.params.isVoiceMode);
-    }
-    if (route.params?.editItem) {
-      const {name, dosage} = route.params.editItem;
+    if (route.params?.resetInputs) {
+      setName('');
+      setDosage('');
+    } else if (route.params?.editItem) {
+      const { name, dosage } = route.params.editItem;
       setName(name);
       const match = dosage.match(/1회 (\d+)알/);
       if (match) {
         setDosage(match[1]);
-      } else {
-        setDosage('');
       }
     }
 
-    if (isVoiceMode) {
+    setIsVoiceMode(route.params?.isVoiceMode || false);
+
+    initVoice();
+
+    if (route.params?.isVoiceMode) {
       startVoiceInput();
     }
 
-    Voice.onSpeechResults = onSpeechResults;
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
     };
-  }, [route.params, isVoiceMode, currentStep]);
+  }, [route.params]);
+
+  const initVoice = async () => {
+    try {
+      await Voice.destroy();
+      await Voice.removeAllListeners();
+      Voice.onSpeechResults = onSpeechResults;
+      Voice.onSpeechError = onSpeechError;
+    } catch (e) {
+      console.error('Failed to init Voice module', e);
+    }
+  };
 
   const startVoiceInput = async () => {
     if (currentStep === 'name') {
-      await speak('복용할 약의 이름을 말씀해 주세요.')
-        .then(() => {
-          //speak내용이 실행이 되지 않아서 speak함수 호출 후 바로 startListening을 호출한 것이 원인일 수 있음.
-          startListening();
-        })
-        .catch(error => {
-          console.error('speak error:', error);
-        });
+      setTimeout(async () => {
+        await speak('복용할 약의 이름을 말씀해 주세요.');
+        startListening();
+      }, 2000);
     } else if (currentStep === 'dosage') {
-      await speak('한 번에 복용하는 약의 양을 말씀해 주세요.')
-        .then(() => {
-          startListening();
-        })
-        .catch(error => {
-          console.error('speak error:', error);
-        });
+      setTimeout(async () => {
+        await speak('한 번에 복용하는 약의 양을 말씀해 주세요.');
+        startListening();
+      }, 2000);
     } else if (currentStep === 'confirmation') {
-      await speak(
-        `입력된 정보를 확인해 주세요. 약 이름은 ${name}이고, 복용량은 1회 ${dosage}알입니다. 맞으면 맞아요, 틀리면 아니오라고 말씀해 주세요.`,
-      )
-        .then(() => {
-          startListening();
-        })
-        .catch(error => {
-          console.error('speak error:', error);
-        });
+      setTimeout(async () => {
+        await speak(`입력된 정보를 확인해 주세요. 약 이름은 ${name}이고, 복용량은 1회 ${dosage}알입니다. 맞으면 맞아요, 틀리면 아니오라고 말씀해 주세요.`);
+        startListening();
+      }, 2000);
     }
   };
 
@@ -101,6 +95,7 @@ export default function InputScreen({route}) {
   };
 
   const onSpeechResults = async e => {
+    clearTimeout(listeningTimeout); // 타이머 해제
     if (e.value && e.value.length > 0) {
       const result = e.value[0].toLowerCase();
       console.log('Recognized speech:', result);
@@ -108,7 +103,29 @@ export default function InputScreen({route}) {
     }
   };
 
-  const handleVoiceInput = input => {
+  const onSpeechError = async e => {
+    console.error('Speech recognition error:', e);
+    if (e.error.code === '7' || e.error.code === '5') {
+      console.log('No speech input detected. Restarting voice recognition.');
+      ToastAndroid.show(
+        '죄송합니다. 다시 한 번 말씀해 주세요.',
+        ToastAndroid.SHORT,
+      );
+      console.log('No speech results');
+      await speak('음성이 인식되지 않았습니다. 다시 말씀해 주세요.');
+      await startVoiceInput();
+    } else {
+      //speak('음성 인식에 문제가 발생했습니다. 다시 시도합니다.');
+      ToastAndroid.show(
+        '음성 인식 중 문제가 발생했습니다. 다시 시도합니다.',
+        ToastAndroid.SHORT,
+      );
+      await startVoiceInput();
+    }
+  };
+
+
+  const handleVoiceInput = useCallback((input) => {
     switch (currentStep) {
       case 'name':
         handleNameInput(input);
@@ -120,12 +137,20 @@ export default function InputScreen({route}) {
         handleConfirmation(input);
         break;
     }
-  };
+  }, [currentStep]);
 
-  const handleNameInput = input => {
-    setName(input);
-    setCurrentStep('dosage');
-    //startVoiceInput();
+  const handleNameInput = input => {    
+    if (input.length > 0) {
+      console.log('약 이름을 입력받았습니다. 다음 질문으로 넘어갑니다');
+      setName(input);
+      setCurrentStep('dosage');
+      //setTimeout(() => startVoiceInput(), 1000);
+    } else {
+      speak(
+        '인식된 약 이름이 없습니다. 약 이름을 다시 말씀해 주세요.',
+      );
+      setTimeout(() => startListening(), 3000);
+    }
   };
 
   const handleDosageInput = input => {
@@ -166,8 +191,17 @@ export default function InputScreen({route}) {
     dosage = dosage.replace(/개|계|게|알/g, ''); // 개, 알 모두 '알'로 처리 or 필터링 ''
     console.log('변환된 dosage: ', dosage);
 
-    setDosage(dosage);
-    setCurrentStep('confirmation');
+    if (dosage.length > 0) {
+      console.log('복용할 약의 갯수를 입력받았습니다. 확인 질문으로 넘어갑니다');
+      setDosage(dosage);
+      setCurrentStep('confirmation');
+      //setTimeout(() => startVoiceInput(), 1000);
+    } else {
+      speak(
+        '인식된 약 갯수가 없습니다. 복용할 약의 갯수를 다시 말씀해 주세요.',
+      );
+      setTimeout(() => startListening(), 3000);
+    }
     //startVoiceInput();
   };
 

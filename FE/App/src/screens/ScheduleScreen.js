@@ -33,8 +33,17 @@ export default function ScheduleScreen() {
   const [drugList, setDrugList] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState(null);
+  const [name, setName] = useState('');
+  const [dosage, setDosage] = useState('');
 
   useEffect(() => {
+    if (route.params?.resetInputs) {
+      // 입력값 초기화
+      setName('');
+      setDosage('');
+      // 다른 필요한 상태 초기화
+    }
+
     const unsubscribe = navigation.addListener('focus', () => {
       fetchDrugList();
 
@@ -122,6 +131,13 @@ export default function ScheduleScreen() {
     return days.join('/');
   };
 
+  const handleAddMedication = (isVoiceMode = false) => {
+    cleanupAndNavigate(navigation, () => {}, 'Input1', {
+      resetInputs: true,
+      isVoiceMode,
+    });
+  };
+
   const renderItem = ({item, index}) => (
     <View
       className="bg-orange-100 dark:bg-gray-800 p-5 m-2 rounded-2xl"
@@ -201,14 +217,7 @@ export default function ScheduleScreen() {
         className="p-2 mt-24"
       />
       <TouchableOpacity
-        onPress={() => {
-          const isVoiceMode = false; // 텍스트 모드로 설정
-          cleanupAndNavigate(navigation, () => {}, 'Input1', {
-            name: '',
-            dosage: '',
-            isVoiceMode,
-          });
-        }}
+        onPress={() => handleAddMedication(false)}
         className="bg-orange-default dark:bg-orange-600 p-5 m-4 rounded-full self-end"
         activeOpacity={0.7}
         accessibilityLabel="일정 추가 버튼"

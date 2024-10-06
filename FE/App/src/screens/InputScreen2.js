@@ -14,7 +14,7 @@ import {useNavigation} from '@react-navigation/native';
 import PushNotification from 'react-native-push-notification';
 import Voice from '@react-native-voice/voice';
 import hashSum from 'hash-sum';
-import {speak} from './ScheduleVoiceHandler';
+import {speak, cleanupAndNavigate } from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import TimePicker from '../components/TimePicker';
 import {useTheme} from '../constants/ThemeContext';
@@ -34,8 +34,6 @@ export default function InputScreen2({route}) {
   const [selectedDays, setSelectedDays] = useState([]);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [currentStep, setCurrentStep] = useState('days');
-  const [selectedHour, setSelectedHour] = useState('09');
-  const [selectedMinute, setSelectedMinute] = useState('00');
 
   useEffect(() => {
     const now = new Date();
@@ -92,7 +90,7 @@ export default function InputScreen2({route}) {
     } else if (currentStep === 'times') {
       setTimeout(async () => {
         await speak(
-          '약을 복용하는 시간을 말씀해 주세요. 예를 들어 아침 8시, 저녁 7시',
+          '약을 복용하는 시간을 말씀해 주세요. 예를 들어 23시, 저녁 7시',
         );
         startListening();
       }, 2000);
@@ -136,7 +134,7 @@ export default function InputScreen2({route}) {
     }
   };
 
-  const onSpeechError = e => {
+  const onSpeechError = async e => {
     console.error('Speech recognition error:', e);
     if (e.error.code === '7' || e.error.code === '5') {
       console.log('No speech input detected. Restarting voice recognition.');
@@ -144,8 +142,8 @@ export default function InputScreen2({route}) {
         '죄송합니다. 다시 한 번 말씀해 주세요.',
         ToastAndroid.SHORT,
       );
-      setTimeout(() => {
-        startListening();
+      setTimeout(async () => {
+        await startVoiceInput();
       }, 2000);
     } else {
       //speak('음성 인식에 문제가 발생했습니다. 다시 시도합니다.');
@@ -153,8 +151,8 @@ export default function InputScreen2({route}) {
         '음성 인식 중 문제가 발생했습니다. 다시 시도합니다.',
         ToastAndroid.SHORT,
       );
-      setTimeout(() => {
-        startVoiceInput();
+      setTimeout(async () => {
+        await startVoiceInput();
       }, 2000);
     }
   };
@@ -301,25 +299,42 @@ export default function InputScreen2({route}) {
       return null;
     };
 
-    const times = input
-      .toLowerCase()
-      .split(/[,]+/)
-      .map(t => t.trim());
-
+    const processPairKeywords = (word1, word2) => {
+      if (timeKeywords[word1] && timeKeywords[word2]) {
+        return [timeKeywords[word1], timeKeywords[word2]];
+      }
+      return null;
+    };
+  
+    const times = input.toLowerCase().split(/[,]+/).map(t => t.trim());
+  
     const convertedTimes = times.flatMap(phrase => {
       const words = phrase.split(/\s+/);
       if (words.length === 1) {
-        const time = processTimePhrase(words[0]);
-        return time ? [time] : [];
+        if (timeKeywords[words[0]]) {
+          return [timeKeywords[words[0]]];
+        } else {
+          const time = processTimePhrase(words[0]);
+          return time ? [time] : [];
+        }
       } else if (words.length === 2) {
-        if (timeKeywords[words[0]] && timeKeywords[words[1]]) {
-          return [timeKeywords[words[0]], timeKeywords[words[1]]];
+        const pairResult = processPairKeywords(words[0], words[1]);
+        if (pairResult) {
+          return pairResult;
         } else {
           const time = processTimePhrase(phrase);
           return time ? [time] : [];
         }
+      } else {
+        return words.flatMap(word => {
+          if (timeKeywords[word]) {
+            return [timeKeywords[word]];
+          } else {
+            const time = processTimePhrase(word);
+            return time ? [time] : [];
+          }
+        });
       }
-      return [];
     });
 
     if (convertedTimes.length > 0) {
@@ -367,7 +382,7 @@ export default function InputScreen2({route}) {
       }, 1000);
     } else {
       await speak('추가 또는 다음이라고 말씀해 주세요.');
-      setTimeout(() => startListening(), 2000);
+      setTimeout(() => startListening(), 3000);
     }
   };
 
@@ -383,7 +398,7 @@ export default function InputScreen2({route}) {
       setTimeout(() => {
         startListening();
         setCurrentStep('confirmation');
-      }, 1000); // TTS 종료 후 1초 뒤에 음성 인식 시작하고 스텝 변경
+      }, 2000); // TTS 종료 후 2초 뒤에 음성 인식 시작하고 스텝 변경
     }, 3000);
   };
 
@@ -445,9 +460,16 @@ export default function InputScreen2({route}) {
       await AsyncStorage.setItem('drugList', JSON.stringify(drugList));
       scheduleNotifications(drugInfo); // 알림 예약
       if (isVoiceMode) {
-        speak('약 정보가 저장되었습니다. 일정 페이지로 돌아갑니다.');
+        await speak('약 정보가 저장되었습니다. 일정 페이지로 돌아갑니다.');
       }
-      navigation.navigate('Schedule');
+      // 네비게이션 수정 및 파라미터 초기화
+      navigation.navigate('Schedule', {
+        resetInputs: true,
+        name: '',
+        dosage: '',
+        isVoiceMode: true
+      });
+      //navigation.navigate('Schedule');
     } catch (error) {
       console.error('Error saving data:', error);
       if (isVoiceMode) {

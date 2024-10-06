@@ -17,21 +17,29 @@ export const cleanupAndNavigate = (navigation, resetVoiceState, screenName, para
   if (typeof resetVoiceState === 'function') {
     resetVoiceState(); // HomeScreen에서 전달받은 함수 호출
   }
-  if (screenName === 'Home') {
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'Home', params: {...params, resetVoice: true}}],
-    });
-  }
-  if (screenName === 'Input1') {
-    navigation.navigate(screenName, {
-      ...params,
-      name: '',
-      dosage: '',
-      isVoiceMode,
-    });
-  } else {
-    navigation.navigate(screenName, {...params, isVoiceMode}); // isVoiceMode 상태를 전달
+
+  const commonParams = {
+    ...params,
+    isVoiceMode: params.isVoiceMode || false,
+    resetInputs: true  // 이 플래그를 추가하여 InputScreen1에서 입력값 초기화를 트리거합니다.
+  };
+  
+  switch (screenName) {
+    case 'Home':
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'Home', params: {...commonParams, resetVoice: true}}],
+      });
+      break;
+    case 'Input1':
+      navigation.navigate(screenName, {
+        ...commonParams,
+        name: '',  // name을 빈 문자열로 초기화
+        dosage: '',  // dosage를 빈 문자열로 초기화
+      });
+      break;
+    default:
+      navigation.navigate(screenName, commonParams);
   }
 };
 
@@ -107,29 +115,6 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
         await speak('잘못 들었습니다. 다시 말씀해 주세요.');
         await askForInputMethod();
       }
-      // switch (currentStep) {
-      //   case 'inputMethod':
-      //     if (result.includes('음성')) {
-      //       isVoiceMode = true;  // 음성 모드로 설정
-      //       // Input1로 화면 전환
-      //       setTimeout(() => {
-      //         cleanupAndNavigate('Input1', { isVoiceMode });
-      //       }, 2000);
-      //       currentStep = 'name';
-      //     } else if (result.includes('텍스트')) {
-      //       isVoiceMode = false;  // 텍스트 모드로 설정
-      //       cleanupAndNavigate('Input1');
-      //     } else if (result.includes('취소')) {
-      //       await speak('알림 설정을 취소합니다');
-      //       setTimeout(() => {
-      //         cleanupAndNavigate('Home', { resetVoice: true, cancelledFromSchedule: true });
-      //       }, 2000);
-      //     } else {
-      //       await speak('잘못 들었습니다. 다시 말씀해 주세요.');
-      //       await askForInputMethod();
-      //     }
-      //     break;
-      // }
     } else {
       console.log('No speech results');
       await speak('음성이 인식되지 않았습니다. 다시 말씀해 주세요.');
@@ -141,7 +126,7 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
     }
   };
 
-  const handleSpeechError = e => {
+  const handleSpeechError = async e => {
     if (isCancelled) return;
     console.error('Speech recognition error:', e);
 
@@ -156,15 +141,20 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
           ToastAndroid.SHORT,
         );
       }
-      // iOS의 경우 필요하다면 다른 방식의 알림을 사용할 수 있음.
-
+      console.log('No speech results');
+      await speak('음성이 인식되지 않았습니다. 다시 말씀해 주세요.');
+      if (currentStep === 'inputMethod') {
+        await askForInputMethod();
+      } else {
+        startListening();
+      }
       // 음성 인식을 다시 시작
-      if (!isCancelled) setTimeout(startListening, 1000);
+      //if (!isCancelled) setTimeout(startListening, 1000);
     } else {
       // 다른 에러의 경우 기존 로직 유지
       stopListening();
-      speak('음성 인식에 문제가 발생했습니다. 다시 시도합니다.');
-      if (!isCancelled) setTimeout(askForInputMethod, 2000);
+      await speak('음성 인식에 문제가 발생했습니다. 다시 시도합니다.');
+      await askForInputMethod();
     }
     isListening = false;
   };
