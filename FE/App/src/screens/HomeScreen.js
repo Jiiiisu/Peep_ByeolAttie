@@ -236,6 +236,17 @@ export default function HomeScreen() {
     if (userMessage.includes('카메라')) {
       assistantResponse = '카메라를 켭니다';
       await stopListening();
+      setMessages(prevMessages => [
+        ...prevMessages,
+        {role: 'assistant', content: assistantResponse},
+      ]);
+      // 대기 시간 추가
+      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        await speak(assistantResponse);
+      } catch (error) {
+        console.error('TTS error:', error);
+      }
       navigation.navigate('Camera');
     } else if (userMessage.includes('일정')) {
       assistantResponse = '일정 관리 페이지로 이동합니다';
@@ -245,22 +256,42 @@ export default function HomeScreen() {
         {role: 'assistant', content: assistantResponse},
       ]);
       try {
-        await speak(assistantResponse);
+        // 대기 시간 추가
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        Tts.speak(assistantResponse, {
+          iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
+          androidParams: {
+            KEY_PARAM_PAN: -1,
+            KEY_PARAM_VOLUME: 1.0,
+            KEY_PARAM_STREAM: 'STREAM_MUSIC',
+          },
+        });
         setTimeout(() => {
           navigation.navigate('Schedule', {startVoiceHandler: true});
         }, 2000);
       } catch (error) {
         console.error('TTS error:', error);
+        navigation.navigate('Schedule', {startVoiceHandler: true}); //TTS출력되지 않아도 화면전환
       }
     } else {
-      // 다른 명령어에 대한 처리
       assistantResponse = '죄송합니다. 이해하지 못했습니다.';
       setMessages(prevMessages => [
         ...prevMessages,
         {role: 'assistant', content: assistantResponse},
       ]);
       try {
-        await speak(assistantResponse);
+        // 대기 시간 추가
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        Tts.speak(assistantResponse, {
+          iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
+          androidParams: {
+            KEY_PARAM_PAN: -1,
+            KEY_PARAM_VOLUME: 1.0,
+            KEY_PARAM_STREAM: 'STREAM_MUSIC',
+          },
+        });
       } catch (error) {
         console.error('TTS error:', error);
       }
@@ -282,7 +313,8 @@ export default function HomeScreen() {
     try {
       await Voice.stop();
       setRecording(false);
-      //resetVoiceState();
+      // 대기 시간 추가
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (e) {
       console.error('stopListening error: ', e);
     } finally {
