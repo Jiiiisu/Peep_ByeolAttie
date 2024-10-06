@@ -258,7 +258,7 @@ export default function HomeScreen() {
       try {
         // 대기 시간 추가
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         Tts.speak(assistantResponse, {
           iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
           androidParams: {
@@ -283,7 +283,7 @@ export default function HomeScreen() {
       try {
         // 대기 시간 추가
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         Tts.speak(assistantResponse, {
           iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
           androidParams: {
@@ -362,7 +362,8 @@ export default function HomeScreen() {
                     style={{width: wp(70)}}>
                     <Text
                       className="text-black dark:text-white text-[24px] font-Regular"
-                      accessible={false}>
+                      accessible={false}
+                      importantForAccessibility="no">
                       {message.content}
                     </Text>
                   </View>
@@ -383,9 +384,13 @@ export default function HomeScreen() {
           <TouchableOpacity
             onPress={recording ? stopListening : startListening}
             disabled={isTtsSpeaking}
-            accessibilityLabel={recording ? '녹음 중지' : '녹음 시작'}
+            accessibilityLabel={
+              recording ? '보이스 모드 중지' : '보이스 모드 시작'
+            }
             accessibilityHint={
-              recording ? '녹음을 중지합니다.' : '녹음을 시작합니다.'
+              recording
+                ? '보이스 모드를 중지합니다.'
+                : '보이스 모드를 시작합니다.'
             }>
             {recording ? (
               colorScheme === 'dark' ? (

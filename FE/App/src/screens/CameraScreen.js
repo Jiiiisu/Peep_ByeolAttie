@@ -322,7 +322,8 @@ export default function CameraScreen() {
         </TouchableOpacity>
         <Text
           className="text-black dark:text-white text-[24px] font-Regular ml-3"
-          accessible={false}>
+          accessible={false}
+          importantForAccessibility="no">
           카메라
         </Text>
       </View>
@@ -380,7 +381,8 @@ export default function CameraScreen() {
                 <ScrollView>
                   <Text
                     style={{fontSize: wp(4), color: 'white'}}
-                    accessible={false}>
+                    accessible={false}
+                    importantForAccessibility="no">
                     {recognizedText || 'Scanning...'}
                   </Text>
                 </ScrollView>

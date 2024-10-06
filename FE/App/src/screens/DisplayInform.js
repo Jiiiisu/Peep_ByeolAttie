@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useRef, useCallback, useEffect} from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import {ScrollView} from 'react-native-gesture-handler';
 import {
   widthPercentageToDP as wp,
@@ -20,7 +21,7 @@ import {useTheme} from '../constants/ThemeContext';
 const DisplayInform = () => {
   const navigation = useNavigation();
   const scrollViewRef = useRef(null);
-  const {colorScheme, toggleTheme} = useTheme();
+  const {colorScheme} = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,35 +33,30 @@ const DisplayInform = () => {
   const [useMethodQesitm, setUseMethodQesitm] = useState('');
   const [atpnWarnQesitm, setAtpnWarnQesitm] = useState('');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const nameOfMDN = '지엘타이밍정';
-      try {
-        const infoResult = await GetInfoByName(nameOfMDN);
-        const detailResult = await GetDetailedInfo(nameOfMDN);
+  const fetchData = async () => {
+    const nameOfMDN = '지엘타이밍정';
+    setLoading(true);
+    setError(null);
+    try {
+      const infoResult = await GetInfoByName(nameOfMDN);
+      const detailResult = await GetDetailedInfo(nameOfMDN);
 
-        const splitInfo = infoResult.split('^');
-        const splitDetail = detailResult.split('^');
+      const splitInfo = infoResult.split('^');
+      const splitDetail = detailResult.split('^');
 
-        setName(splitInfo[0] || '');
-        setImage(splitInfo[3] || '');
-        setClassName(splitInfo[4] || '');
+      setName(splitInfo[0] || '');
+      setImage(splitInfo[3] || '');
+      setClassName(splitInfo[4] || '');
 
-        setEfcyQesitm(splitDetail[1] || '');
-        setUseMethodQesitm(splitDetail[2] || '');
-        setAtpnWarnQesitm(splitDetail[3] || '');
-      } catch (err) {
-        setError('약물 정보를 불러오는 데 실패했습니다.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-
-    if (!loading) {
-      startSpeak();
+      setEfcyQesitm(splitDetail[1] || '');
+      setUseMethodQesitm(splitDetail[2] || '');
+      setAtpnWarnQesitm(splitDetail[3] || '');
+    } catch (err) {
+      setError('약물 정보를 불러오는 데 실패했습니다.');
+    } finally {
+      setLoading(false);
     }
-  }, [loading]);
+  };
 
   const startSpeak = async () => {
     const fullText = `${name}. 이 약은 ${className}입니다. 
@@ -68,6 +64,45 @@ const DisplayInform = () => {
     사용법: ${useMethodQesitm}`;
     speak(fullText);
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, []),
+  );
+
+  useEffect(() => {
+    if (!loading && !error) {
+      startSpeak();
+    }
+  }, [loading, error, name, className, efcyQesitm, useMethodQesitm]);
+
+  if (loading)
+    return (
+      <View className="flex-1 bg-default-1 dark:bg-neutral-900 items-center justify-center">
+        <ActivityIndicator
+          size="large"
+          color={colorScheme ? '#FF9F23' : '#EA580C'}
+        />
+      </View>
+    );
+  if (error)
+    return (
+      <View className="flex-1 bg-default-1 dark:bg-neutral-900 items-center justify-center">
+        <Text
+          className="text-black dark:text-white text-[24px] pb-2 font-Regular"
+          accessible={false}
+          importantForAccessibility="no">
+          {error}
+        </Text>
+        <Text
+          className="text-black dark:text-white text-[24px] font-Regular"
+          accessible={false}
+          importantForAccessibility="no">
+          앱을 다시 시작해주세요
+        </Text>
+      </View>
+    );
 
   // Render
   function renderHeader() {
@@ -86,37 +121,13 @@ const DisplayInform = () => {
         </TouchableOpacity>
         <Text
           className="text-black dark:text-white text-[24px] font-Regular ml-3"
-          accessible={false}>
+          accessible={false}
+          importantForAccessibility="no">
           상세 정보
         </Text>
       </View>
     );
   }
-
-  if (loading)
-    return (
-      <View className="flex-1 bg-default-1 dark:bg-neutral-900 items-center justify-center">
-        <ActivityIndicator
-          size="large"
-          color={colorScheme ? '#FF9F23' : '#EA580C'}
-        />
-      </View>
-    );
-  if (error)
-    return (
-      <View className="flex-1 bg-default-1 dark:bg-neutral-900 items-center justify-center">
-        <Text
-          className="text-black dark:text-white text-[24px] pb-2 font-Regular"
-          accessible={false}>
-          {error}
-        </Text>
-        <Text
-          className="text-black dark:text-white text-[24px] font-Regular"
-          accessible={false}>
-          앱을 다시 시작해주세요
-        </Text>
-      </View>
-    );
 
   return (
     <View className="flex-1 bg-default-1 dark:bg-neutral-900">
@@ -137,7 +148,8 @@ const DisplayInform = () => {
         {name && (
           <Text
             className="text-black dark:text-white text-[30px] font-ExtraBold mb-4 self-center"
-            accessible={false}>
+            accessible={false}
+            importantForAccessibility="no">
             {name}
           </Text>
         )}
@@ -168,18 +180,20 @@ const DisplayInform = () => {
   );
 };
 
-const InfoSection = ({title, content, onPress}) => {
+const InfoSection = ({title, content}) => {
   if (!content) return null;
   return (
     <View className="flex-1 mb-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md">
       <Text
         className="text-black dark:text-white text-[26px] font-Bold mb-2"
-        accessible={false}>
+        accessible={false}
+        importantForAccessibility="no">
         {title}
       </Text>
       <Text
         className="text-gray-800 dark:text-gray-200 text-[24px] font-Regular leading-8"
-        accessible={false}>
+        accessible={false}
+        importantForAccessibility="no">
         {content}
       </Text>
     </View>

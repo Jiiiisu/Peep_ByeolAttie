@@ -32,7 +32,7 @@ export default function InputScreen({route}) {
     // if (route.params?.name) {
     //   setName(route.params.name);
     // } else setName('');
-    
+
     // if (route.params?.dosage) {
     //   setDosage(route.params.dosage);
     // } else setDosage('');
@@ -218,15 +218,12 @@ export default function InputScreen({route}) {
   // Render
   function renderHeader() {
     return (
-      <View className="flex-row mt-8 px-4 items-center justify-between z-10">
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon
-            name="navigate-before"
-            size={30}
-            color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
+      <View className="flex-row mt-8 px-4 items-center justify-end z-10">
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Schedule')}
+          accessibilityLabel="닫기"
+          accessibilityHint="현재 화면을 닫고 일정 목록 화면으로 이동합니다"
+          accessibilityOrder={2}>
           <Icon
             name="close"
             size={30}
@@ -243,41 +240,55 @@ export default function InputScreen({route}) {
       <View className="flex-1 p-5">
         <Text
           className="text-black dark:text-white text-[24px] font-Regular"
-          accessible={false}>
+          accessible={false}
+          importantForAccessibility="no">
           1/2
         </Text>
         <Text
           className="mb-2 text-black dark:text-white text-[30px] font-ExtraBold"
-          accessible={false}>
+          accessible={false}
+          importantForAccessibility="no">
           약 정보
         </Text>
-        <ScrollView className="flex-1 mt-5 space-y-10">
-          <View className="space-y-2">
+        <ScrollView
+          className="flex-1 mt-5 space-y-10"
+          accessible={false}
+          importantForAccessibility="no">
+          <View
+            className="space-y-2"
+            accessible={false}
+            importantForAccessibility="no">
             <Text
               className="mt-2 text-black dark:text-white text-[24px] font-Regular text-center"
-              accessible={false}>
+              accessible={false}
+              importantForAccessibility="no">
               복용할 약의 이름을 입력해 주세요
             </Text>
             <TextInput
               className="bg-default-2 dark:bg-gray-700 p-3 rounded-full mt-1 text-center text-black dark:text-white text-[24px] font-ExtraBold"
               value={name}
+              accessible={false}
+              importantForAccessibility="no"
               onChangeText={setName}
               placeholder="입력해 주세요"
               placeholderTextColor={colorScheme === 'dark' ? '#999' : '#666'}
-              accessible={false}
             />
           </View>
 
-          <View className="space-y-2">
+          <View className="space-y-2" accessible={false}>
             <Text
               className="mt-2 text-black dark:text-white text-[24px] font-Regular text-center"
-              accessible={false}>
+              accessible={false}
+              importantForAccessibility="no">
               한 번에 복용하는 약의 양을 입력해 주세요
             </Text>
-            <View className="flex-row items-center justify-center mt-1">
+            <View
+              className="flex-row items-center justify-center mt-1"
+              accessible={false}>
               <Text
                 className="mt-2 text-black dark:text-white text-[24px] font-Bold text-center"
-                accessible={false}>
+                accessible={false}
+                importantForAccessibility="no">
                 1회
               </Text>
               <TextInput
@@ -286,10 +297,12 @@ export default function InputScreen({route}) {
                 onChangeText={setDosage}
                 keyboardType="numeric"
                 accessible={false}
+                importantForAccessibility="no"
               />
               <Text
                 className="mt-2 text-black dark:text-white text-[24px] font-Bold text-center"
-                accessible={false}>
+                accessible={false}
+                importantForAccessibility="no">
                 알
               </Text>
             </View>
@@ -305,7 +318,10 @@ export default function InputScreen({route}) {
             }`}
             onPress={handleNext}
             disabled={!name || !dosage}
-            accessible={false}>
+            accessibilityOrder={1}
+            accessible={true}
+            accessibilityLabel="다음"
+            accessibilityHint="모든 정보를 입력한 후 다음으로 넘어갈 수 있습니다.">
             <Text
               className="text-white text-[24px] font-Bold text-center"
               accessible={false}>

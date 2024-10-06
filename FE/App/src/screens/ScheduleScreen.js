@@ -15,7 +15,10 @@ import {
 } from 'react-native-responsive-screen';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import hashSum from 'hash-sum';
-import {handleScheduleVoice, cleanupAndNavigate} from '../screens/ScheduleVoiceHandler';
+import {
+  handleScheduleVoice,
+  cleanupAndNavigate,
+} from '../screens/ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Logo from '../../assets/images/Logo.svg';
 import {useTheme} from '../constants/ThemeContext';
@@ -122,10 +125,10 @@ export default function ScheduleScreen() {
   const renderItem = ({item, index}) => (
     <View
       className="bg-yellow-default dark:bg-gray-800 p-5 m-2 rounded-2xl"
-      accessibilityLabel={item.name}
-      accessibilityHint={`${item.name} ${formatDays(item.days)} ${
-        item.dosage
-      } 복용해야 합니다`}>
+      accessible={true}
+      accessibilityLabel={`약 이름:${item.name}
+      복용 요일:${formatDays(item.days)}
+      복용량:${item.dosage}`}>
       <View className="flex-row justify-between">
         <Text
           className="text-[28px] font-ExtraBold text-orange-default dark:text-white"
@@ -137,7 +140,7 @@ export default function ScheduleScreen() {
             setSelectedItemIndex(index);
             setModalVisible(true);
           }}
-          accessibilityLabel="더 보기"
+          accessibilityLabel="더 보기 버튼"
           accessibilityHint="이 항목에 대한 추가 옵션을 엽니다.">
           <Icon
             name="more-vert"
@@ -175,11 +178,14 @@ export default function ScheduleScreen() {
         <Logo width={wp(40)} height={hp(5)} />
       </View>
       <View className="absolute top-0 right-0 my-8 px-4 z-10">
-        <TouchableOpacity onPress={() => navigation.openDrawer()}>
+        <TouchableOpacity
+          onPress={() => navigation.openDrawer()}
+          accessibilityLabel="메뉴 열기"
+          accessibilityHint="앱의 메뉴를 엽니다">
           <Icon
             name="menu"
             size={30}
-            color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'}
+            color={colorScheme === 'dark' ? '#ffffff' : '#000000'}
           />
         </TouchableOpacity>
       </View>
@@ -192,11 +198,15 @@ export default function ScheduleScreen() {
       <TouchableOpacity
         onPress={() => {
           const isVoiceMode = false; // 텍스트 모드로 설정
-          cleanupAndNavigate(navigation, () => {}, 'Input1', { name: '', dosage: '', isVoiceMode });
+          cleanupAndNavigate(navigation, () => {}, 'Input1', {
+            name: '',
+            dosage: '',
+            isVoiceMode,
+          });
         }}
         className="bg-orange-default dark:bg-orange-600 p-5 m-4 rounded-full self-end"
         activeOpacity={0.7}
-        accessibilityLabel="일정 추가"
+        accessibilityLabel="일정 추가 버튼"
         accessibilityHint="일정을 추가합니다">
         <View className="flex-row items-center space-x-1">
           <Icon name="add" size={30} color="#fff" />
@@ -213,27 +223,40 @@ export default function ScheduleScreen() {
           onPressOut={() => setModalVisible(false)}>
           <View className="bg-white dark:bg-neutral-800 rounded-lg p-4 m-4 absolute bottom-0 left-0 right-0">
             <TouchableOpacity
-              className="p-3"
+              className="p-3 w-full"
               onPress={() =>
                 handleEdit(drugList[selectedItemIndex], selectedItemIndex)
               }
-              accessibilityLabel="일정 수정"
+              accessibilityLabel="일정 수정 버튼"
               accessibilityHint="일정을 수정합니다">
               <Text
-                className="text-[24px] font-Regular text-black dark:text-white"
+                className="text-[24px] font-Regular text-center text-blue-500 dark:text-blue-400"
                 accessible={false}>
                 수정
               </Text>
             </TouchableOpacity>
+            <View className="border-b-2 border-gray-200 dark:border-gray-600 mt-2 mb-2" />
             <TouchableOpacity
-              className="p-3"
+              className="p-3 w-full"
               onPress={() => handleDelete(selectedItemIndex)}
-              accessibilityLabel="일정 삭제"
+              accessibilityLabel="일정 삭제 버튼"
               accessibilityHint="일정을 삭제합니다">
               <Text
-                className="text-[24px] font-Regular text-red-500 dark:text-red-400"
+                className="text-[24px] font-Regular text-center text-red-500 dark:text-red-400"
                 accessible={false}>
                 삭제
+              </Text>
+            </TouchableOpacity>
+            <View className="border-b-2 border-gray-200 dark:border-gray-600 mt-2 mb-2" />
+            <TouchableOpacity
+              className="p-3 w-full"
+              onPress={() => setModalVisible(false)}
+              accessibilityLabel="닫기 버튼"
+              accessibilityHint="더보기 메뉴를 닫습니다">
+              <Text
+                className="text-[24px] font-Regular text-center text-black dark:text-white"
+                accessible={false}>
+                닫기
               </Text>
             </TouchableOpacity>
           </View>

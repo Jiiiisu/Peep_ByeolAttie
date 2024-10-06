@@ -126,14 +126,16 @@ export default function WelcomeScreen() {
           {onboardingData[currentPage].title && (
             <Text
               className="text-orange-default dark:text-orange-600 text-[28px] font-ExtraBold mb-2 text-center"
-              accessible={false}>
+              accessible={false}
+              importantForAccessibility="no">
               {onboardingData[currentPage].title}
             </Text>
           )}
           {onboardingData[currentPage].description && (
             <Text
               className="text-[24px] font-Regular text-gray-600 mb-5 dark:text-gray-300 text-center"
-              accessible={false}>
+              accessible={false}
+              importantForAccessibility="no">
               {onboardingData[currentPage].description}
             </Text>
           )}

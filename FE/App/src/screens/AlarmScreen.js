@@ -32,12 +32,14 @@ export default function AlarmScreen() {
     <SafeAreaView className="flex-1 justify-center items-center bg-default-1 dark:bg-neutral-900 p-8">
       <Text
         className="text-[30px] font-ExtraBold mb-3 text-gray-800 dark:text-white"
-        accessible={false}>
+        accessible={false}
+        importantForAccessibility="no">
         {drugName} 복용 시간입니다!
       </Text>
       <View
         className="bg-white dark:bg-gray-800 p-5 rounded-lg w-full mb-5 shadow"
-        accessible={false}>
+        accessible={false}
+        importantForAccessibility="no">
         <View className="flex-row">
           <Icon
             name="alarm"
@@ -46,7 +48,8 @@ export default function AlarmScreen() {
           />
           <Text
             className="text-[30px] font-ExtraBold text-orange-default dark:text-orange-600 pl-2"
-            accessible={false}>
+            accessible={false}
+            importantForAccessibility="no">
             {time}
           </Text>
         </View>
@@ -55,12 +58,14 @@ export default function AlarmScreen() {
         <View className="rounded-lg w-full pb-2">
           <Text
             className="text-[28px] font-ExtraBold mb-2 text-gray-600 dark:text-gray-300"
-            accessible={false}>
+            accessible={false}
+            importantForAccessibility="no">
             {drugName}
           </Text>
           <Text
             className="text-[26px] font-Bold mb-2 text-gray-600 dark:text-gray-300"
-            accessible={false}>
+            accessible={false}
+            importantForAccessibility="no">
             {dosage}
           </Text>
         </View>

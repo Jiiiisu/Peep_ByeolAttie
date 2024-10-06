@@ -1,4 +1,5 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
+import {Appearance} from 'react-native';
 import {useColorScheme as useNativeWindColorScheme} from 'nativewind';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -8,13 +9,17 @@ export const ThemeProvider = ({children}) => {
   const {colorScheme, toggleColorScheme, setColorScheme} =
     useNativeWindColorScheme();
   const [isLoading, setIsLoading] = useState(true);
+  const [themePreference, setThemePreference] = useState('auto');
 
   useEffect(() => {
     const loadThemePreference = async () => {
       try {
-        const savedTheme = await AsyncStorage.getItem('theme');
-        if (savedTheme !== null) {
-          setColorScheme(savedTheme);
+        const savedPreference = await AsyncStorage.getItem('themePreference');
+        if (savedPreference !== null) {
+          setThemePreference(savedPreference);
+          if (savedPreference !== 'auto') {
+            setColorScheme(savedPreference);
+          }
         }
       } catch (e) {
         console.error('Failed to load theme preference', e);
@@ -26,22 +31,44 @@ export const ThemeProvider = ({children}) => {
     loadThemePreference();
   }, [setColorScheme]);
 
+  useEffect(() => {
+    if (themePreference === 'auto') {
+      const subscription = Appearance.addChangeListener(({colorScheme}) => {
+        setColorScheme(colorScheme);
+      });
+
+      return () => subscription.remove();
+    }
+  }, [themePreference, setColorScheme]);
+
   const toggleTheme = async () => {
-    const newTheme = colorScheme === 'dark' ? 'light' : 'dark';
-    toggleColorScheme();
+    let newTheme;
+    if (themePreference === 'auto') {
+      newTheme = colorScheme === 'dark' ? 'light' : 'dark';
+    } else {
+      newTheme = 'auto';
+    }
+
+    setThemePreference(newTheme);
+    if (newTheme === 'auto') {
+      setColorScheme(Appearance.getColorScheme());
+    } else {
+      setColorScheme(newTheme);
+    }
+
     try {
-      await AsyncStorage.setItem('theme', newTheme);
+      await AsyncStorage.setItem('themePreference', newTheme);
     } catch (e) {
       console.error('Failed to save theme preference', e);
     }
   };
 
   if (isLoading) {
-    return null; // or a loading component
+    return null;
   }
 
   return (
-    <ThemeContext.Provider value={{colorScheme, toggleTheme}}>
+    <ThemeContext.Provider value={{colorScheme, toggleTheme, themePreference}}>
       {children}
     </ThemeContext.Provider>
   );

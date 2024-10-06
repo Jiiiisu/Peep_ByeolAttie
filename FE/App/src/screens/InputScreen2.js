@@ -217,12 +217,54 @@ export default function InputScreen2({route}) {
 
     const koreanToArabic = koreanNumber => {
       const koreanNumbers = {
-        일: 1, 이: 2, 삼: 3, 사: 4, 오: 5, 육: 6, 칠: 7, 팔: 8, 구: 9, 십: 10,
-        십일: 11, 십이: 12, 십삼: 13, 십사: 14, 십오: 15, 십육: 16, 십칠: 17, 십팔: 18, 십구: 19, 이십: 20,
-        이십일: 21, 이십이: 22, 이십삼: 23, 이십사: 24,
-        한: 1, 두: 2, 세: 3, 네: 4, 다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9,
-        열: 10, 열한: 11, 열두: 12, 열세: 13, 열네: 14, 열다섯: 15, 열여섯: 16, 열일곱: 17, 열여덟: 18, 열아홉: 19,
-        스물: 20, 스물한: 21, 스물두: 22, 스물세: 23, 스물네: 24,
+        일: 1,
+        이: 2,
+        삼: 3,
+        사: 4,
+        오: 5,
+        육: 6,
+        칠: 7,
+        팔: 8,
+        구: 9,
+        십: 10,
+        십일: 11,
+        십이: 12,
+        십삼: 13,
+        십사: 14,
+        십오: 15,
+        십육: 16,
+        십칠: 17,
+        십팔: 18,
+        십구: 19,
+        이십: 20,
+        이십일: 21,
+        이십이: 22,
+        이십삼: 23,
+        이십사: 24,
+        한: 1,
+        두: 2,
+        세: 3,
+        네: 4,
+        다섯: 5,
+        여섯: 6,
+        일곱: 7,
+        여덟: 8,
+        아홉: 9,
+        열: 10,
+        열한: 11,
+        열두: 12,
+        열세: 13,
+        열네: 14,
+        열다섯: 15,
+        열여섯: 16,
+        열일곱: 17,
+        열여덟: 18,
+        열아홉: 19,
+        스물: 20,
+        스물한: 21,
+        스물두: 22,
+        스물세: 23,
+        스물네: 24,
       };
       return koreanNumbers[koreanNumber] || koreanNumber;
     };
@@ -230,33 +272,40 @@ export default function InputScreen2({route}) {
     const convertTime = (hours, minutes, period) => {
       hours = parseInt(koreanToArabic(hours));
       minutes = minutes ? parseInt(minutes) : 0;
-    
+
       if (period === '오후' || period === '저녁') {
         //아침이나 저녁 n시 이렇게 입력하는 경우도 포함
         if (hours < 12) hours += 12;
       } else if (period === '오전' || period === '아침') {
         if (hours === 12) hours = 0;
       }
-  
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+      return `${hours.toString().padStart(2, '0')}:${minutes
+        .toString()
+        .padStart(2, '0')}`;
     };
 
     const processTimePhrase = phrase => {
       if (timeKeywords[phrase]) {
         return timeKeywords[phrase];
       }
-  
-      const match = phrase.match(/^(아침|점심|저녁|오전|오후)?\s*(\d{1,2})(시)?\s*(\d{1,2})?(분)?$/);
+
+      const match = phrase.match(
+        /^(아침|점심|저녁|오전|오후)?\s*(\d{1,2})(시)?\s*(\d{1,2})?(분)?$/,
+      );
       if (match) {
         const [_, period, hours, __, minutes] = match;
         return convertTime(hours, minutes, period);
       }
-  
+
       return null;
     };
-  
-    const times = input.toLowerCase().split(/[,]+/).map(t => t.trim());
-  
+
+    const times = input
+      .toLowerCase()
+      .split(/[,]+/)
+      .map(t => t.trim());
+
     const convertedTimes = times.flatMap(phrase => {
       const words = phrase.split(/\s+/);
       if (words.length === 1) {
@@ -276,7 +325,7 @@ export default function InputScreen2({route}) {
     if (convertedTimes.length > 0) {
       console.log('시간을 입력받았습니다. 다음 질문으로 넘어갑니다');
       console.log('인식된 시간:', convertedTimes);
-  
+
       setTimes(prevTimes => {
         const updatedTimes = [...prevTimes, ...convertedTimes];
         console.log('업데이트된 시간 목록:', updatedTimes);
@@ -551,7 +600,8 @@ export default function InputScreen2({route}) {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityLabel="뒤로 가기"
-          accessibilityHint="약 이름과 복용량을 다시 설정합니다">
+          accessibilityHint="약 이름과 복용량을 다시 설정합니다"
+          accessibilityOrder={2}>
           <Icon
             name="navigate-before"
             size={30}
@@ -561,7 +611,8 @@ export default function InputScreen2({route}) {
         <TouchableOpacity
           onPress={() => navigation.navigate('Schedule')}
           accessibilityLabel="닫기"
-          accessibilityHint="현재 화면을 닫고 일정 화면으로 이동합니다">
+          accessibilityHint="현재 화면을 닫고 일정 목록으로 이동합니다"
+          accessibilityOrder={3}>
           <Icon
             name="close"
             size={30}
@@ -578,19 +629,25 @@ export default function InputScreen2({route}) {
       <View className="flex-1 p-5">
         <Text
           className="text-black dark:text-white text-[24px] font-Regular"
-          accessible={false}>
+          accessible={false}
+          importantForAccessibility="no">
           2/2
         </Text>
         <Text
           className="mb-2 text-black dark:text-white text-[30px] font-ExtraBold"
-          accessible={false}>
+          accessible={false}
+          importantForAccessibility="no">
           복약 일정
         </Text>
-        <ScrollView className="flex-1 mt-5 space-y-10">
+        <ScrollView
+          className="flex-1 mt-5 space-y-10"
+          accessible={false}
+          importantForAccessibility="no">
           <View className="space-y-2">
             <Text
               className="mt-2 text-black dark:text-white text-[24px] font-Regular text-center"
-              accessible={false}>
+              accessible={false}
+              importantForAccessibility="no">
               어떤 요일에 약을 복용하는지 입력해 주세요
             </Text>
             <View className="flex-row justify-between mt-2">
@@ -603,14 +660,16 @@ export default function InputScreen2({route}) {
                       : 'border-2 border-default-2 dark:border-neutral-700'
                   }`}
                   onPress={() => toggleDay(day)}
-                  accessible={false}>
+                  accessible={false}
+                  importantForAccessibility="no">
                   <Text
                     className={
                       selectedDays.includes(day)
                         ? 'text-white text-[24px] font-Bold text-center'
                         : 'text-black dark:text-white text-[24px] font-Bold text-center'
                     }
-                    accessible={false}>
+                    accessible={false}
+                    importantForAccessibility="no">
                     {day}
                   </Text>
                 </TouchableOpacity>
@@ -621,7 +680,8 @@ export default function InputScreen2({route}) {
           <View className="space-y-2">
             <Text
               className="mt-2 text-black dark:text-white text-[24px] font-Regular text-center"
-              accessible={false}>
+              accessible={false}
+              importantForAccessibility="no">
               약을 복용하는 시간을 입력해 주세요
             </Text>
             {times.map((time, index) => (
@@ -630,12 +690,14 @@ export default function InputScreen2({route}) {
                 className="bg-default-2 dark:bg-neutral-800 p-3 rounded-full flex-row items-center justify-between mt-1">
                 <Text
                   className="text-black dark:text-white text-[24px] font-ExtraBold text-center flex-1"
-                  accessible={false}>
+                  accessible={false}
+                  importantForAccessibility="no">
                   {time}
                 </Text>
                 <TouchableOpacity
                   onPress={() => handleTimeDelete(time)}
-                  accessible={false}>
+                  accessible={false}
+                  importantForAccessibility="no">
                   <Icon
                     name="clear"
                     size={30}
@@ -647,10 +709,12 @@ export default function InputScreen2({route}) {
             <TouchableOpacity
               className="bg-orange-default dark:bg-orange-600 p-4 rounded-xl space-y-2 mt-1"
               onPress={handleAddTime}
-              accessible={false}>
+              accessible={false}
+              importantForAccessibility="no">
               <Text
                 className="text-white text-[24px] font-Bold text-center"
-                accessible={false}>
+                accessible={false}
+                importantForAccessibility="no">
                 추가
               </Text>
             </TouchableOpacity>
@@ -659,7 +723,8 @@ export default function InputScreen2({route}) {
           <View className="space-y-2">
             <Text
               className="mt-2 text-black dark:text-white text-[24px] font-Regular text-center"
-              accessible={false}>
+              accessible={false}
+              importantForAccessibility="no">
               추가로 필요한 정보를 입력해 주세요
             </Text>
             <TextInput
@@ -672,6 +737,7 @@ export default function InputScreen2({route}) {
               }
               multiline
               accessible={false}
+              importantForAccessibility="no"
             />
           </View>
         </ScrollView>
@@ -685,7 +751,10 @@ export default function InputScreen2({route}) {
             }`}
             onPress={handleSave}
             disabled={times.length === 0 || selectedDays.length === 0}
-            accessible={false}>
+            accessibilityOrder={1}
+            accessible={true}
+            accessibilityLabel="저장"
+            accessibilityHint="모든 정보를 입력한 후 저장할 수 있습니다.">
             <Text className="text-white text-[24px] font-Bold text-center">
               {route.params?.editIndex !== undefined ? '수정' : '저장'}
             </Text>

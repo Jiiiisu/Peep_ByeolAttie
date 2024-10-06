@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {View, Text, Switch, TouchableOpacity} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -6,10 +6,7 @@ import {useTheme} from '../constants/ThemeContext';
 
 export default function SettingScreen() {
   const navigation = useNavigation();
-
-  const {colorScheme, toggleTheme} = useTheme();
-  const [isEnabled, setIsEnabled] = useState(false);
-  const toggleSwitch = () => setIsEnabled(!isEnabled);
+  const {colorScheme, toggleTheme, themePreference} = useTheme();
 
   // Render
   function renderHeader() {
@@ -40,19 +37,30 @@ export default function SettingScreen() {
       {renderHeader()}
       <View className="flex-row justify-between items-center p-5">
         <Text
-          className="text-[24px] font-Regular dark:text-white"
+          className="text-[24px] font-Regular text-black dark:text-white"
           accessible={true}>
-          다크 모드 사용
+          테마 설정
         </Text>
-        <Switch
-          trackColor={{false: '#767577', true: '#FF9F23'}}
-          thumbColor={isEnabled ? '#f5dd4b' : '#f4f3f4'}
-          value={colorScheme === 'dark'}
-          onValueChange={toggleTheme}
-          accessibilityLabel="다크 모드 사용 여부 설정"
-          accessibilityHint={'다크 모드 기능을 켜거나 끕니다.'}
-          style={{transform: [{scaleX: 1.2}, {scaleY: 1.2}]}}
-        />
+        <TouchableOpacity onPress={toggleTheme} className="flex items-center">
+          <Text className="text-[16px] font-Regular text-black dark:text-white mb-2">
+            {themePreference === 'auto'
+              ? '자동'
+              : colorScheme === 'dark'
+              ? '다크'
+              : '라이트'}
+          </Text>
+          <Switch
+            trackColor={{false: '#767577', true: '#FF9F23'}}
+            thumbColor={colorScheme === 'dark' ? '#f5dd4b' : '#f4f3f4'}
+            value={colorScheme === 'dark'}
+            onValueChange={toggleTheme}
+            accessibilityLabel="테마 설정"
+            accessibilityHint={
+              '테마를 변경합니다. 자동, 라이트, 다크 모드를 전환합니다.'
+            }
+            style={{transform: [{scaleX: 1.2}, {scaleY: 1.2}]}}
+          />
+        </TouchableOpacity>
       </View>
     </View>
   );
