@@ -1,10 +1,12 @@
 import React, {useState, useEffect, useCallback, useRef} from 'react';
-import {View, Text, TouchableOpacity, Animated} from 'react-native';
+import {View, Text, TouchableOpacity, Animated, Platform} from 'react-native';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import {request, PERMISSIONS, RESULTS, check} from 'react-native-permissions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {speak} from './ScheduleVoiceHandler';
 
 export default function WelcomeScreen() {
@@ -42,6 +44,33 @@ export default function WelcomeScreen() {
   const [currentPage, setCurrentPage] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const requestPermissions = async () => {
+    const permissions = [
+      PERMISSIONS.ANDROID.CAMERA,
+      PERMISSIONS.ANDROID.RECORD_AUDIO,
+    ];
+
+    if (Platform.Version >= 33) {
+      permissions.push(PERMISSIONS.ANDROID.POST_NOTIFICATIONS);
+    } else {
+      permissions.push(PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
+      permissions.push(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
+    }
+
+    try {
+      for (const permission of permissions) {
+        const status = await check(permission);
+        console.log(`${permission} status: ${status}`);
+
+        if (status !== RESULTS.GRANTED) {
+          await request(permission);
+        }
+      }
+    } catch (error) {
+      console.error('권한 요청 중 오류 발생:', error);
+    }
+  };
 
   useEffect(() => {
     setCurrentPage(0);
@@ -89,6 +118,8 @@ export default function WelcomeScreen() {
       }, 300);
       startSpeak(currentPage + 1);
     } else {
+      requestPermissions();
+      AsyncStorage.setItem('alreadyLaunched', 'true');
       navigation.navigate('Home');
     }
   };

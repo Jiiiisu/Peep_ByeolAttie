@@ -3,7 +3,6 @@ import {
   View,
   Image,
   Text,
-  PermissionsAndroid,
   Platform,
   BackHandler,
   ToastAndroid,
@@ -21,8 +20,9 @@ import {
   useFocusEffect,
   useRoute,
 } from '@react-navigation/native';
-import {initTts, speak} from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {request, PERMISSIONS, RESULTS, check} from 'react-native-permissions';
+import {initTts, speak} from './ScheduleVoiceHandler';
 import Recording from '../../assets/images/Recording.svg';
 import RecordingDark from '../../assets/images/Recording(Dark).svg';
 import Stop from '../../assets/images/Stop.svg';
@@ -126,7 +126,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const setup = async () => {
       await initVoice();
-      await requestMicrophonePermission();
+      await requestPermissions();
       await initTts(); //Tts 초기화
     };
     setup();
@@ -137,28 +137,30 @@ export default function HomeScreen() {
     };
   }, [initVoice]);
 
-  const requestMicrophonePermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-          {
-            title: 'Microphone Permission',
-            message:
-              'This app needs access to your microphone for speech recognition.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          },
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          console.log('Microphone permission granted');
-        } else {
-          console.log('Microphone permission denied');
+  const requestPermissions = async () => {
+    const permissions = [
+      PERMISSIONS.ANDROID.CAMERA,
+      PERMISSIONS.ANDROID.RECORD_AUDIO,
+    ];
+
+    if (Platform.Version >= 33) {
+      permissions.push(PERMISSIONS.ANDROID.POST_NOTIFICATIONS);
+    } else {
+      permissions.push(PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
+      permissions.push(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
+    }
+
+    try {
+      for (const permission of permissions) {
+        const status = await check(permission);
+        console.log(`${permission} status: ${status}`);
+
+        if (status !== RESULTS.GRANTED) {
+          await request(permission);
         }
-      } catch (err) {
-        console.warn(err);
       }
+    } catch (error) {
+      console.error('권한 요청 중 오류 발생:', error);
     }
   };
 
