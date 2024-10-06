@@ -21,13 +21,21 @@ import {speak} from './ScheduleVoiceHandler'; // speak함수 import
 import RNFS from 'react-native-fs'; // react-native-fs 임포트
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useTheme} from '../constants/ThemeContext';
+import { StyleSheet } from 'react-native';
+import { Dimensions } from 'react-native';
 
 const {CustomMlkitOcrModule} = NativeModules;
+const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
 export default function CameraScreen() {
   const navigation = useNavigation();
   const {colorScheme, toggleTheme} = useTheme();
+  const [detections, setDetections] = useState([]);
+  const [cameraViewSize, setCameraViewSize] = useState({ width: SCREEN_WIDTH, height: SCREEN_HEIGHT });
 
+  useEffect(() => {
+    console.log('Current cameraViewSize:', cameraViewSize);
+  }, [cameraViewSize]);
   // Camera
   const devices = useCameraDevices();
   const device = devices.back;
@@ -100,7 +108,7 @@ export default function CameraScreen() {
 
     try {
       //'http://192.168.45.44:5000/detect'
-      const response = await fetch('http://13.124.74.207:5000/detect', {
+      const response = await fetch('http:///13.124.74.207:5000/detect', {
         method: 'POST',
         body: formData,
         headers: {
@@ -117,12 +125,56 @@ export default function CameraScreen() {
       }
       else{
         await speak("약물 인식을 하고 있습니다.");
+        setDetections(result.detections);  // 여기를 수정했습니다.
       }
 
     } catch (error) {
       console.error('Error sending image to server:', error);
     }
   };
+  
+  const drawBoundingBoxes = () => {
+    console.log('Drawing bounding boxes. Detections:', detections);
+    console.log('Current cameraViewSize:', cameraViewSize);
+
+    return detections.map((detection, index) => {
+      const [x, y, width, height] = detection.bbox;
+      
+      // Calculate scaling factors
+      const scaleX = cameraViewSize.width / 640;
+      const scaleY = cameraViewSize.height / 640;
+      
+      // Scale the bounding box coordinates
+      const scaledX = x * scaleX;
+      const scaledY = y * scaleY;
+      const scaledWidth = (width - x) * scaleX;
+      const scaledHeight = (height - y) * scaleY;
+      
+      console.log(`Original bounding box ${index}: x=${x}, y=${y}, width=${width}, height=${height}`);
+      console.log(`Scaled bounding box ${index}: x=${scaledX}, y=${scaledY}, width=${scaledWidth}, height=${scaledHeight}`);
+      console.log(`Scale factors: scaleX=${scaleX}, scaleY=${scaleY}`);
+      
+      return (
+        <View
+          key={index}
+          style={[
+            styles.boundingBox,
+            {
+              left: scaledX,
+              top: scaledY,
+              width: scaledWidth,
+              height: scaledHeight,
+            },
+          ]}
+        >
+          <Text style={styles.label}>{detection.label}</Text>
+          <Text style={styles.confidence}>{(detection.confidence * 100).toFixed(2)}%</Text>
+        </View>
+      );
+    });
+  };
+
+
 
   // Send image to predict server
   const sendImageToClassificationServer = async imagePath => {
@@ -358,7 +410,14 @@ export default function CameraScreen() {
       return <View className="flex-1" />;
     } else {
       return (
-        <View className="flex-1 pt-4">
+        <View 
+          className="flex-1 pt-4"
+          onLayout={(event) => {
+            const {width, height} = event.nativeEvent.layout;
+            console.log('Camera view layout:', width, height);
+            setCameraViewSize({width, height});
+          }}
+        >
           {takePhotoClicked ? (
             <View className="flex-1">
               {/* Camera */}
@@ -368,8 +427,8 @@ export default function CameraScreen() {
                 device={device}
                 isActive={true}
                 photo={true}
-                frameProcessor={frameProcessor} //frameProcessor 추가
-                frameProcessorFps={1} // 초당 1번 프레임 처리
+                frameProcessor={frameProcessor}
+                frameProcessorFps={1}
               />
 
               {/* Take Photo Button */}
@@ -433,11 +492,45 @@ export default function CameraScreen() {
       );
     }
   }
+  
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    camera: {
+      flex: 1,
+    },
+    boundingBox: {
+      position: 'absolute',
+      borderWidth: 2,
+      borderColor: 'red',
+      zIndex: 1,
+    },
+    label: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      backgroundColor: 'red',
+      color: 'white',
+      padding: 4,
+    },
+    confidence: {
+      position: 'absolute',
+      top: 20,
+      left: 0,
+      backgroundColor: 'red',
+      color: 'white',
+      padding: 4,
+    },
+  });
 
   return (
     <View className="flex-1 bg-default-1 dark:bg-neutral-900">
       {renderHeader()}
-      {renderCamera()}
+      <View style={styles.container}>
+        {renderCamera()}
+        {drawBoundingBoxes()}
+      </View>
     </View>
   );
 }
