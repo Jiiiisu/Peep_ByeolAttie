@@ -23,7 +23,6 @@ import {
 } from '@react-navigation/native';
 import {initTts, speak} from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import Logo from '../../assets/images/Logo.svg';
 import Recording from '../../assets/images/Recording.svg';
 import RecordingDark from '../../assets/images/Recording(Dark).svg';
 import Stop from '../../assets/images/Stop.svg';
@@ -325,7 +324,12 @@ export default function HomeScreen() {
   return (
     <View className="relative flex-1 bg-default-1 dark:bg-neutral-900">
       <View className="absolute top-0 left-0 right-0 flex-row items-center justify-center my-8 z-10">
-        <Logo width={wp(40)} height={hp(5)} />
+        <Text
+          className="text-orange-default dark:text-white text-[32px] font-ExtraBold"
+          accessible={false}
+          importantForAccessibility="no">
+          삐약삐약
+        </Text>
       </View>
       <View className="absolute top-0 right-0 my-8 px-4 z-10">
         <TouchableOpacity
@@ -339,7 +343,7 @@ export default function HomeScreen() {
           />
         </TouchableOpacity>
       </View>
-      <SafeAreaView className="flex-1 mx-5 mt-24">
+      <SafeAreaView className="flex-1 mx-5 mt-24 mb-20">
         {messages.length > 0 ? (
           <View className="flex-1 space-y-2">
             <View
@@ -372,43 +376,58 @@ export default function HomeScreen() {
             </View>
           </View>
         ) : (
-          <View className="items-center">
+          <View
+            className="items-center justify-around"
+            style={{height: hp(80)}}>
+            <View className="rounded-lg w-full h-32 mt-2 items-center justify-center bg-default-2 dark:bg-neutral-800">
+              <Text className="text-gray-800 dark:text-gray-200 text-[24px] font-Regular text-center mb-1">
+                환영합니다
+              </Text>
+              <Text className="text-gray-800 dark:text-gray-200 text-[24px] font-Regular text-center">
+                아래의 버튼을 눌러 시작해보세요!
+              </Text>
+            </View>
             <Image
               source={require('../../assets/images/Peep(2-1).png')}
               style={{width: wp(60), height: hp(40)}}
               resizeMode="contain"
             />
+            <View style={{height: hp(10)}} />
           </View>
         )}
-        <View className="flex justify-center items-center mb-10 absolute bottom-0 left-0 right-0">
-          <TouchableOpacity
-            onPress={recording ? stopListening : startListening}
-            disabled={isTtsSpeaking}
-            accessibilityLabel={
-              recording ? '보이스 모드 중지' : '보이스 모드 시작'
-            }
-            accessibilityHint={
-              recording
-                ? '보이스 모드를 중지합니다.'
-                : '보이스 모드를 시작합니다.'
-            }>
-            {recording ? (
-              colorScheme === 'dark' ? (
-                <StopDark height={hp(10)} opacity={isTtsSpeaking ? 0.5 : 1} />
-              ) : (
-                <Stop height={hp(10)} opacity={isTtsSpeaking ? 0.5 : 1} />
-              )
-            ) : colorScheme === 'dark' ? (
-              <RecordingDark
-                height={hp(10)}
-                opacity={isTtsSpeaking ? 0.5 : 1}
-              />
-            ) : (
-              <Recording height={hp(10)} opacity={isTtsSpeaking ? 0.5 : 1} />
-            )}
-          </TouchableOpacity>
-        </View>
       </SafeAreaView>
+      <View
+        className="absolute bottom-0 left-0 right-0 rounded-3xl rounded-b-none bg-default-2 dark:bg-neutral-800"
+        style={{height: hp(13)}}
+      />
+      <View
+        className="absolute bottom-0 left-0 right-0 items-top"
+        style={{height: hp(20)}}>
+        <TouchableOpacity
+          className="self-center"
+          onPress={recording ? stopListening : startListening}
+          disabled={isTtsSpeaking}
+          accessibilityLabel={
+            recording ? '보이스 모드 중지' : '보이스 모드 시작'
+          }
+          accessibilityHint={
+            recording
+              ? '보이스 모드를 중지합니다.'
+              : '보이스 모드를 시작합니다.'
+          }>
+          {recording ? (
+            colorScheme === 'dark' ? (
+              <StopDark height={hp(13)} opacity={isTtsSpeaking ? 0.5 : 1} />
+            ) : (
+              <Stop height={hp(13)} opacity={isTtsSpeaking ? 0.5 : 1} />
+            )
+          ) : colorScheme === 'dark' ? (
+            <RecordingDark height={hp(13)} opacity={isTtsSpeaking ? 0.5 : 1} />
+          ) : (
+            <Recording height={hp(13)} opacity={isTtsSpeaking ? 0.5 : 1} />
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

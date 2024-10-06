@@ -124,7 +124,7 @@ export default function ScheduleScreen() {
 
   const renderItem = ({item, index}) => (
     <View
-      className="bg-yellow-default dark:bg-gray-800 p-5 m-2 rounded-2xl"
+      className="bg-orange-100 dark:bg-gray-800 p-5 m-2 rounded-2xl"
       accessible={true}
       accessibilityLabel={`약 이름:${item.name}
       복용 요일:${formatDays(item.days)}
@@ -175,7 +175,12 @@ export default function ScheduleScreen() {
   return (
     <View className="relative flex-1 bg-default-1 dark:bg-neutral-900">
       <View className="absolute top-0 left-0 right-0 flex-row items-center justify-center my-8 z-10">
-        <Logo width={wp(40)} height={hp(5)} />
+        <Text
+          className="text-orange-default dark:text-white text-[32px] font-ExtraBold"
+          accessible={false}
+          importantForAccessibility="no">
+          삐약삐약
+        </Text>
       </View>
       <View className="absolute top-0 right-0 my-8 px-4 z-10">
         <TouchableOpacity
