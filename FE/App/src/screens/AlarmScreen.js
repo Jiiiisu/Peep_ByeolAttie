@@ -44,7 +44,7 @@ export default function AlarmScreen() {
           <Icon
             name="alarm"
             size={30}
-            color={colorScheme === 'dark' ? '#ffffff' : '#EA580C'}
+            color={colorScheme === 'dark' ? '#EA580C' : '#FF9F23'}
           />
           <Text
             className="text-[30px] font-ExtraBold text-orange-default dark:text-orange-600 pl-2"

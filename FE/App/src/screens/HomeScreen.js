@@ -381,7 +381,7 @@ export default function HomeScreen() {
           <View
             className="items-center justify-around"
             style={{height: hp(80)}}>
-            <View className="rounded-lg w-full h-32 mt-2 items-center justify-center bg-default-2 dark:bg-neutral-800">
+            <View className="rounded-lg w-full h-32 mt-2 items-center justify-center bg-default-2 dark:bg-slate-800">
               <Text className="text-gray-800 dark:text-gray-200 text-[24px] font-Regular text-center mb-1">
                 환영합니다
               </Text>
@@ -399,7 +399,7 @@ export default function HomeScreen() {
         )}
       </SafeAreaView>
       <View
-        className="absolute bottom-0 left-0 right-0 rounded-3xl rounded-b-none bg-default-2 dark:bg-neutral-800"
+        className="absolute bottom-0 left-0 right-0 rounded-3xl rounded-b-none bg-default-2 dark:bg-slate-800"
         style={{height: hp(13)}}
       />
       <View
