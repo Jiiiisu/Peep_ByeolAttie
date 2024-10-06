@@ -12,7 +12,7 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Voice from '@react-native-voice/voice';
 import {speak} from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -27,34 +27,49 @@ export default function InputScreen({route}) {
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
   const [isVoiceMode, setIsVoiceMode] = useState(false);
-  const [currentStep, setCurrentStep] = useState('name');
-  const [listeningTimeout, setListeningTimeout] = useState(null); // 음성인식 타이머
+  const [currentStep, setCurrentStep] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false); //TTS가 한번만 출력되도록 하는 변수
   
-  useEffect(() => {
-    if (route.params?.resetInputs) {
-      setName('');
-      setDosage('');
-    } else if (route.params?.editItem) {
-      const { name, dosage } = route.params.editItem;
-      setName(name);
-      const match = dosage.match(/1회 (\d+)알/);
-      if (match) {
-        setDosage(match[1]);
+  useFocusEffect(
+    useCallback(() => {
+      // 화면이 포커스를 받을 때마다 실행
+      if (route.params?.resetInputs) {
+        setName('');
+        setDosage('');
+        setCurrentStep('name');
       }
-    }
+      setIsVoiceMode(route.params?.isVoiceMode || false);
 
-    setIsVoiceMode(route.params?.isVoiceMode || false);
+      return () => {
+        // 화면이 포커스를 잃을 때 실행 (필요한 경우)
+      };
+    }, [route.params])
+  );
 
-    initVoice();
+  useEffect(() => {
+    const initializeScreen = async () => {
+      if (route.params?.editItem) {
+        const { name, dosage } = route.params.editItem;
+        setName(name);
+        const match = dosage.match(/1회 (\d+)알/);
+        if (match) {
+          setDosage(match[1]);
+        }
+      }
 
-    if (route.params?.isVoiceMode) {
-      startVoiceInput();
-    }
+      await initVoice();
+
+      if (route.params?.isVoiceMode) {
+        startVoiceInput();
+      }
+    };
+
+    initializeScreen();
 
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
     };
-  }, [route.params]);
+  }, [isVoiceMode, currentStep]);
 
   const initVoice = async () => {
     try {
@@ -95,7 +110,6 @@ export default function InputScreen({route}) {
   };
 
   const onSpeechResults = async e => {
-    clearTimeout(listeningTimeout); // 타이머 해제
     if (e.value && e.value.length > 0) {
       const result = e.value[0].toLowerCase();
       console.log('Recognized speech:', result);
@@ -162,6 +176,7 @@ export default function InputScreen({route}) {
         영: 0,
         하나: 1,
         한: 1,
+        반 : 1,
         둘: 2,
         두: 2,
         무: 2,
@@ -169,10 +184,15 @@ export default function InputScreen({route}) {
         세: 3,
         넷: 4,
         네: 4,
+        내: 4,
         다섯: 5,
+        다서: 5,
         여섯: 6,
+        여서: 6,
+        녀서: 6,
         일곱: 7,
         여덟: 8,
+        여덜: 8,
         아홉: 9,
         열: 10,
       };

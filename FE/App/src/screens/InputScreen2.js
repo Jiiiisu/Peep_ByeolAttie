@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -80,33 +80,34 @@ export default function InputScreen2({route}) {
   };
 
   const startVoiceInput = async () => {
-    if (currentStep === 'days') {
-      setTimeout(async () => {
-        await speak(
-          '어떤 요일에 약을 복용하는지 말씀해 주세요. 예를 들어, 월수금, 매일',
-        );
-        startListening();
-      }, 2000);
-    } else if (currentStep === 'times') {
-      setTimeout(async () => {
-        await speak(
-          '약을 복용하는 시간을 말씀해 주세요. 예를 들어 23시, 저녁 7시',
-        );
-        startListening();
-      }, 2000);
-    } else if (currentStep === 'confirmation') {
-      setTimeout(async () => {
-        await speak('저장하시겠습니까? 저장 또는 아니오로 대답해 주세요.');
-        setTimeout(() => startListening(), 1000);
-      }, 2000);
+    console.log('Starting voice input for step:', currentStep);
+    let message = '';
+    switch (currentStep) {
+      case 'days':
+        message = '어떤 요일에 약을 복용하는지 말씀해 주세요. 예를 들어, 월수금, 일주일';
+        break;
+      case 'times':
+        message = '약을 복용하는 시간을 말씀해 주세요. 예를 들어 23시, 저녁 7시';
+        break;
+      case 'additionalTime':
+        message = '예약 시간을 추가하시려면 추가, 없으시면 다음을 말씀해주세요';
+        break;
+      case 'additionalInfo':
+        message = '추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항, 복용 주기 등';
+        break;
+      case 'confirmation':
+        message = '저장하시겠습니까? 저장 또는 아니오로 대답해 주세요.';
+        break;
     }
-    // else if (currentStep === 'additionalInfo') {
-    //   setTimeout(async () => {
-    //     await speak('추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항, 복용 주기 등');
-    //     // 여기서 startListening()을 호출하지 않습니다.
-    //     //startListening();
-    //   }, 2000);
-    // }
+  
+    try {
+      await speak(message);
+      console.log('TTS finished, starting listening');
+      setTimeout(() => startListening(), 500); // TTS 종료 후 약간의 지연을 두고 음성 인식 시작
+    } catch (error) {
+      console.error('Error in startVoiceInput:', error);
+      startListening();
+    }
   };
 
   const startListening = async () => {
@@ -134,7 +135,7 @@ export default function InputScreen2({route}) {
     }
   };
 
-  const onSpeechError = async e => {
+  const onSpeechError = useCallback(async (e) => {
     console.error('Speech recognition error:', e);
     if (e.error.code === '7' || e.error.code === '5') {
       console.log('No speech input detected. Restarting voice recognition.');
@@ -142,20 +143,22 @@ export default function InputScreen2({route}) {
         '죄송합니다. 다시 한 번 말씀해 주세요.',
         ToastAndroid.SHORT,
       );
-      setTimeout(async () => {
+      console.log('No speech results');
+      try {
+        await speak('음성이 인식되지 않았습니다. 다시 말씀해 주세요.');
+        console.log('TTS finished, restarting voice input');
         await startVoiceInput();
-      }, 2000);
+      } catch (error) {
+        console.error('Error in speech error handling:', error);
+      }
     } else {
-      //speak('음성 인식에 문제가 발생했습니다. 다시 시도합니다.');
       ToastAndroid.show(
         '음성 인식 중 문제가 발생했습니다. 다시 시도합니다.',
         ToastAndroid.SHORT,
       );
-      setTimeout(async () => {
-        await startVoiceInput();
-      }, 2000);
+      await startVoiceInput();
     }
-  };
+  }, [startVoiceInput]);
 
   const handleVoiceInput = input => {
     switch (currentStep) {
@@ -183,9 +186,9 @@ export default function InputScreen2({route}) {
       .split(/[,\s]+/)
       .map(day => day.replace(/요일/g, ''));
 
-    if (recognizedDays.includes('매일')) {
+    if (recognizedDays.includes('일주일')) { //매일은 발음이 너무 어려움
       setSelectedDays(DAYS);
-      console.log('매일로 설정되었습니다.');
+      console.log('일주일로 설정되었습니다.');
       setCurrentStep('times');
       //setTimeout(() => startVoiceInput(), 1000);
       return;
@@ -347,11 +350,8 @@ export default function InputScreen2({route}) {
         return updatedTimes;
       });
 
-      setCurrentStep('additionalTime'); // 추가 시간 입력 단계로 변경
-      await speak(
-        '예약 시간을 추가하시려면 추가, 없으시면 다음을 말씀해주세요',
-      );
-      setTimeout(() => startListening(), 1000);
+      await setCurrentStep('additionalTime'); // 추가 시간 입력 단계로 변경
+      //startVoiceInput(); // 다음 단계로 진행
     } else {
       await speak(
         '인식된 시간이 없습니다. 약을 복용하는 시간을 다시 말씀해 주세요.',
@@ -363,43 +363,19 @@ export default function InputScreen2({route}) {
   const handleAdditionalTimeInput = async input => {
     const lowerInput = input.toLowerCase();
     if (lowerInput.includes('추가')) {
-      setCurrentStep('times'); // 다시 시간 입력 단계로
-      await speak('추가할 시간을 말씀해 주세요.');
-      //setTimeout(() => startListening(), 1000); //speak함수 출력된 뒤에 음성인식 받으면서 '약을 복용하는 시간을 말씀해 주세요. 예를 들어 아침 8시, 저녁 7시'가 출력되기 때문
+      await setCurrentStep('times'); // 다시 시간 입력 단계로
     } else if (lowerInput.includes('다음') || lowerInput.includes('아니요')) {
-      setCurrentStep('additionalInfo'); // 여기서 additionalInfo 단계로 넘어감
-      setTimeout(async () => {
-        await speak(
-          '추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항, 복용 주기 등',
-        )
-          .then(() => {
-            //speak내용이 실행이 되지 않아서 speak함수 호출 후 바로 startListening을 호출한 것이 원인일 수 있음.
-            startListening();
-          })
-          .catch(error => {
-            console.error('speak error:', error);
-          });
-      }, 1000);
+      await setCurrentStep('additionalInfo'); // 여기서 additionalInfo 단계로 넘어감
     } else {
       await speak('추가 또는 다음이라고 말씀해 주세요.');
-      setTimeout(() => startListening(), 3000);
     }
   };
 
-  const handleAdditionalInfoInput = input => {
+  const handleAdditionalInfoInput = async input => {
     setAdditionalInfo(input);
-    console.log('추가 정보 입력 대기 중...');
+    console.log('추가 정보 입력 완료');
 
-    // 3초 후에 확인 질문을 하고 음성 인식 시작
-    setTimeout(async () => {
-      await speak(
-        '입력이 완료되었습니다. 저장하시겠습니까? 저장 또는 아니요로 대답해 주세요.',
-      );
-      setTimeout(() => {
-        startListening();
-        setCurrentStep('confirmation');
-      }, 2000); // TTS 종료 후 2초 뒤에 음성 인식 시작하고 스텝 변경
-    }, 3000);
+    await setCurrentStep('confirmation'); //await로 상태를 변환한 뒤에 TTS출력 가능함
   };
 
   const handleConfirmation = input => {
