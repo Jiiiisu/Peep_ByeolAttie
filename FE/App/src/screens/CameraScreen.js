@@ -5,6 +5,8 @@ import {
   Image,
   ScrollView,
   NativeModules,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import React, {useRef, useState, useCallback, useEffect} from 'react';
 import {Camera, useCameraDevices} from 'react-native-vision-camera';
@@ -60,9 +62,10 @@ export default function CameraScreen() {
   // keras 결과 전달받음 //////////////////////////////////////////////
   const [classificationResult, setClassificationResult] = useState(null);
   /////////////////////////////////////////////////////////////////
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+    const unsubscribe = navigation.addListener('beforeRemove', e => {
       if (!takePhotoClicked) {
         // 사진을 찍은 후 상태라면 카메라 화면으로 돌아가기
         e.preventDefault();
@@ -93,7 +96,7 @@ export default function CameraScreen() {
         setIsCameraActive(false);
         stopEverything();
       };
-    }, [])
+    }, []),
   );
 
   const stopEverything = useCallback(() => {
@@ -380,34 +383,31 @@ export default function CameraScreen() {
 
   const takePicture = async () => {
     if (camera.current && isCameraActive) {
-      const photo = await camera.current.takePhoto();
-      const imagePath = photo.path;
-
-      // 사진을 특정 폴더에 저장하는 로직 추가
-      //const destinationPath = `${RNFS.DocumentDirectoryPath}/images/1.png`;
-      const destinationPath = `${
-        RNFS.DocumentDirectoryPath
-      }/images/photo_${Date.now()}.png`; //매번 새로운 파일 이름으로 저장하도록 수정
-
       try {
+        setIsLoading(true);
+        const photo = await camera.current.takePhoto();
+        const imagePath = photo.path;
+        // 사진을 특정 폴더에 저장하는 로직 추가
+        //const destinationPath = `${RNFS.DocumentDirectoryPath}/images/1.png`;
+        const destinationPath = `${
+          RNFS.DocumentDirectoryPath
+        }/images/photo_${Date.now()}.png`; //매번 새로운 파일 이름으로 저장하도록 수정
         // 디렉토리 생성(존재하지 않으면)
         const dirPath = `${RNFS.DocumentDirectoryPath}/images`;
         if (!(await RNFS.exists(dirPath))) {
           await RNFS.mkdir(dirPath);
         }
-
         // 사진 이동
         await RNFS.moveFile(imagePath, destinationPath);
         setImageData(destinationPath);
         setTakePhotoClicked(false);
-
         // 이미지 전송
         console.log('사진 저장됨:', destinationPath);
         /////////////////////////////////////////////////////////////
         const classificationResult = await sendImageToClassificationServer(
           destinationPath,
         );
-        if (classificationResult) {
+        if (classificationResult && classificationResult.class) {
           const message = `감지된 약: ${classificationResult.class}`;
           setRecognizedText(message);
           speak(message);
@@ -415,10 +415,16 @@ export default function CameraScreen() {
           navigation.navigate('Inform', {
             medicineName: classificationResult.class,
           });
+        } else {
+          throw new Error('알약이 감지되지 않음');
         }
-        ///////////////////////////////////////////////////////////////
       } catch (error) {
-        console.log('사진 저장 중 오류 발생:', error);
+        console.error('Error in takePicture:', error);
+        Alert.alert('Error', '약이 인식되지 않았습니다. 다시 시도해주세요.', [
+          {text: 'OK', onPress: () => setIsLoading(false)},
+        ]);
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -460,76 +466,64 @@ export default function CameraScreen() {
             console.log('Camera view layout:', width, height);
             setCameraViewSize({width, height});
           }}>
-          {takePhotoClicked ? (
-            <View className="flex-1">
-              {/* Camera */}
-              <Camera
-                className="flex-1"
-                ref={camera}
-                device={device}
-                isActive={isCameraActive}
-                photo={true}
-                frameProcessor={frameProcessor}
-                frameProcessorFps={1}
-              />
-
-              {/* Take Photo Button */}
-              <View className="absolute items-center bottom-8 left-0 right-0">
-                <TouchableOpacity
-                  className="rounded-full items-center justify-center bg-white"
-                  style={{
-                    width: wp(20),
-                    height: hp(10),
-                  }}
-                  onPress={() => {
-                    takePicture();
-                  }}>
-                  <Icon
-                    name="camera-alt"
-                    size={30}
-                    color="#000"
-                    accessible={false}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Camera State */}
-              <View
-                className="absolute top-0 left-0 right-0 z-10"
-                style={{
-                  height: hp(30),
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                  paddingVertical: 15,
-                  paddingHorizontal: 10,
-                }}>
-                <ScrollView>
-                  <Text
-                    style={{fontSize: wp(4), color: 'white'}}
-                    accessible={false}
-                    importantForAccessibility="no">
-                    {recognizedText || 'Scanning...'}
-                  </Text>
-                </ScrollView>
-              </View>
-            </View>
-          ) : (
-            <View className="flex-1 justify-center items-center">
-              {imageData !== '' && (
-                <Image
-                  source={{uri: 'file://' + imageData}}
-                  style={{width: wp(90), height: hp(70)}}
+          <View className="flex-1">
+            {/* Camera */}
+            <Camera
+              className="flex-1"
+              ref={camera}
+              device={device}
+              isActive={isCameraActive}
+              photo={true}
+              frameProcessor={frameProcessor}
+              frameProcessorFps={1}
+            />
+            {isLoading && (
+              <View className="absolute justify-center items-center bg-black/50 h-full w-full">
+                <ActivityIndicator
+                  size="large"
+                  color={colorScheme ? '#FF9F23' : '#EA580C'}
                 />
-              )}
+              </View>
+            )}
+            {/* Take Photo Button */}
+            <View className="absolute items-center bottom-8 left-0 right-0">
               <TouchableOpacity
-                className="self-center rounded border-2 justify-center items-center"
-                style={{width: wp(90), height: hp(10)}}
+                className="rounded-full items-center justify-center bg-white"
+                style={{
+                  width: wp(20),
+                  height: hp(10),
+                }}
                 onPress={() => {
-                  setTakePhotoClicked(true);
+                  takePicture();
                 }}>
-                <Text accessible={false}>다시찍기</Text>
+                <Icon
+                  name="camera-alt"
+                  size={30}
+                  color="#000"
+                  accessible={false}
+                />
               </TouchableOpacity>
             </View>
-          )}
+
+            {/* Camera State */}
+            <View
+              className="absolute top-0 left-0 right-0 z-10"
+              style={{
+                height: hp(30),
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                paddingVertical: 15,
+                paddingHorizontal: 10,
+              }}>
+              <ScrollView>
+                <Text
+                  style={{fontSize: wp(4), color: 'white'}}
+                  accessible={false}
+                  importantForAccessibility="no">
+                  {recognizedText || 'Scanning...'}
+                </Text>
+              </ScrollView>
+            </View>
+          </View>
         </View>
       );
     }
