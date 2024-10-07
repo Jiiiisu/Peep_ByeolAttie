@@ -23,13 +23,14 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useTheme} from '../constants/ThemeContext';
 import {StyleSheet} from 'react-native';
 import {Dimensions} from 'react-native';
+import Tts from 'react-native-tts';
 
 const {CustomMlkitOcrModule} = NativeModules;
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
 export default function CameraScreen() {
   const navigation = useNavigation();
-  const {colorScheme, toggleTheme} = useTheme();
+  const {colorScheme} = useTheme();
   const [detections, setDetections] = useState([]);
   const [cameraViewSize, setCameraViewSize] = useState({
     width: SCREEN_WIDTH,
@@ -52,44 +53,56 @@ export default function CameraScreen() {
   const lastSpokenText = useRef('');
   const ttsTimeoutRef = useRef(null);
   const ttsStartTimeRef = useRef(null);
+  const [isProcessingEnabled, setIsProcessingEnabled] = useState(true);
+  const [isCameraActive, setIsCameraActive] = useState(true);
+  const abortControllerRef = useRef(null);
+  const isMountedRef = useRef(true);
   // keras 결과 전달받음 //////////////////////////////////////////////
   const [classificationResult, setClassificationResult] = useState(null);
   /////////////////////////////////////////////////////////////////
 
   useEffect(() => {
-    const setupCamera = async () => {
-      try {
-        await requestCameraPermission();
-      } catch (error) {
-        console.error('Setup error:', error);
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!takePhotoClicked) {
+        // 사진을 찍은 후 상태라면 카메라 화면으로 돌아가기
+        e.preventDefault();
+        setTakePhotoClicked(true);
+        setImageData('');
+        setIsCameraActive(true);
+      } else {
+        // 카메라 화면에서 뒤로가기
+        stopEverything();
       }
-    };
+    });
 
-    setupCamera();
-  }, []);
+    return unsubscribe;
+  }, [navigation, takePhotoClicked]);
 
-  // 뒤로가기 시 카메라 리소스 정리
   useFocusEffect(
     useCallback(() => {
-      const setupCamera = async () => {
-        try {
-          await requestCameraPermission();
-        } catch (error) {
-          console.error('Setup error:', error);
-        }
+      const enableCamera = async () => {
+        setIsCameraActive(true);
+        setImageData('');
+        setTakePhotoClicked(true);
+        await requestCameraPermission();
       };
 
-      setupCamera(); // 화면이 포커스를 받았을 때 카메라 설정
+      enableCamera();
 
       return () => {
-        console.log('Cleaning up camera resources');
-        // 필요 시 카메라 리소스 정리
-        lastSpokenText.current = ''; // lastSpokenText 초기화
-        setRecognizedText(''); // 화면에 표시되는 텍스트 초기화
-        //camera.current?.stop(); //필요시 사용할 수 있음
+        setIsCameraActive(false);
+        stopEverything();
       };
-    }, []),
+    }, [])
   );
+
+  const stopEverything = useCallback(() => {
+    Tts.stop();
+    setIsCameraActive(false);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  }, []);
 
   // Handler
   const requestCameraPermission = React.useCallback(async () => {
@@ -100,8 +113,21 @@ export default function CameraScreen() {
     }
   }, []);
 
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   // Send image to detect server
   const sendImageToServer = async imagePath => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
     const formData = new FormData();
     formData.append('image', {
       uri: `file://${imagePath}`,
@@ -118,6 +144,8 @@ export default function CameraScreen() {
           'Content-Type': 'multipart/form-data',
         },
       });
+
+      if (!isMountedRef.current) return;
 
       const result = await response.json();
       console.log('Server response:', result.result);
@@ -210,7 +238,7 @@ export default function CameraScreen() {
 
   // Capture and send image every 3 seconds
   const captureAndSendImage = useCallback(async () => {
-    if (camera.current) {
+    if (camera.current && isCameraActive) {
       try {
         const photo = await camera.current.takePhoto({
           qualityPrioritization: 'speed',
@@ -272,17 +300,7 @@ export default function CameraScreen() {
 
   const processFrame = useCallback(
     async frame => {
-      if (isSpeaking) {
-        // TTS가 진행 중일 때 7초가 지났는지 확인
-        const currentTime = Date.now();
-        if (currentTime - ttsStartTimeRef.current >= 7000) {
-          setIsSpeaking(false);
-          clearTimeout(ttsTimeoutRef.current);
-          lastSpokenText.current = '';
-        } else {
-          return; // 7초가 지나지 않았다면 계속 진행 중
-        }
-      }
+      if (!isProcessingEnabled) return;
 
       try {
         const currentTime = Date.now();
@@ -322,12 +340,16 @@ export default function CameraScreen() {
           setRecognizedText(cleanedText || 'No text recognized'); // 화면에 표시할 텍스트 업데이트
 
           setIsSpeaking(true);
+          setIsProcessingEnabled(false);
           ttsStartTimeRef.current = Date.now(); // TTS 시작 시간 기록
-          speak(cleanedText);
+
+          Tts.stop();
+          Tts.speak(cleanedText);
 
           // 7초 후에 TTS 상태 초기화
           ttsTimeoutRef.current = setTimeout(() => {
             setIsSpeaking(false);
+            setIsProcessingEnabled(true);
             lastSpokenText.current = '';
           }, 7000);
         }
@@ -337,7 +359,7 @@ export default function CameraScreen() {
         setRecognizedText('OCR Error occurred');
       }
     },
-    [camera, isSpeaking],
+    [camera, isProcessingEnabled],
   );
 
   useEffect(() => {
@@ -357,7 +379,7 @@ export default function CameraScreen() {
   }, []);
 
   const takePicture = async () => {
-    if (camera != null) {
+    if (camera.current && isCameraActive) {
       const photo = await camera.current.takePhoto();
       const imagePath = photo.path;
 
@@ -445,7 +467,7 @@ export default function CameraScreen() {
                 className="flex-1"
                 ref={camera}
                 device={device}
-                isActive={true}
+                isActive={isCameraActive}
                 photo={true}
                 frameProcessor={frameProcessor}
                 frameProcessorFps={1}
