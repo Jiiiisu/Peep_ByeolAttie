@@ -16,6 +16,7 @@
     <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-image-picker/android" />
     <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-image-resizer/android" />
     <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-linear-gradient/android" />
+    <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-permissions/android" />
     <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-push-notification/android" />
     <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-reanimated/android" />
     <file type="web" url="file://$PROJECT_DIR$/FE/App/node_modules/react-native-safe-area-context/android" />

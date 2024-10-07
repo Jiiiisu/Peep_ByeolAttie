@@ -18,7 +18,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {speak} from './ScheduleVoiceHandler';
 import {useTheme} from '../constants/ThemeContext';
 
-const DisplayInform = () => {
+const DisplayInform = ({route}) => {
   const navigation = useNavigation();
   const scrollViewRef = useRef(null);
   const {colorScheme} = useTheme();
@@ -33,13 +33,12 @@ const DisplayInform = () => {
   const [useMethodQesitm, setUseMethodQesitm] = useState('');
   const [atpnWarnQesitm, setAtpnWarnQesitm] = useState('');
 
-  const fetchData = async () => {
-    const nameOfMDN = '지엘타이밍정';
+  const fetchData = async medicineName => {
     setLoading(true);
     setError(null);
     try {
-      const infoResult = await GetInfoByName(nameOfMDN);
-      const detailResult = await GetDetailedInfo(nameOfMDN);
+      const infoResult = await GetInfoByName(medicineName);
+      const detailResult = await GetDetailedInfo(medicineName);
 
       const splitInfo = infoResult.split('^');
       const splitDetail = detailResult.split('^');
@@ -67,8 +66,11 @@ const DisplayInform = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchData();
-    }, []),
+      const medicineName = route.params?.medicineName;
+      if (medicineName) {
+        fetchData(medicineName);
+      }
+    }, [route.params?.medicineName]),
   );
 
   useEffect(() => {

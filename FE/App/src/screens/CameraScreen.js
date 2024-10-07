@@ -21,8 +21,8 @@ import {speak} from './ScheduleVoiceHandler'; // speak함수 import
 import RNFS from 'react-native-fs'; // react-native-fs 임포트
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useTheme} from '../constants/ThemeContext';
-import { StyleSheet } from 'react-native';
-import { Dimensions } from 'react-native';
+import {StyleSheet} from 'react-native';
+import {Dimensions} from 'react-native';
 
 const {CustomMlkitOcrModule} = NativeModules;
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
@@ -31,7 +31,10 @@ export default function CameraScreen() {
   const navigation = useNavigation();
   const {colorScheme, toggleTheme} = useTheme();
   const [detections, setDetections] = useState([]);
-  const [cameraViewSize, setCameraViewSize] = useState({ width: SCREEN_WIDTH, height: SCREEN_HEIGHT });
+  const [cameraViewSize, setCameraViewSize] = useState({
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  });
 
   useEffect(() => {
     console.log('Current cameraViewSize:', cameraViewSize);
@@ -121,39 +124,41 @@ export default function CameraScreen() {
       setServerResponse(result.result);
 
       if (!result.result) {
-        await speak("약물 인식이 불가능합니다.");
+        await speak('약물 인식이 불가능합니다.');
+      } else {
+        await speak('약물 인식을 하고 있습니다.');
+        setDetections(result.detections); // 여기를 수정했습니다.
       }
-      else{
-        await speak("약물 인식을 하고 있습니다.");
-        setDetections(result.detections);  // 여기를 수정했습니다.
-      }
-
     } catch (error) {
       console.error('Error sending image to server:', error);
     }
   };
-  
+
   const drawBoundingBoxes = () => {
     console.log('Drawing bounding boxes. Detections:', detections);
     console.log('Current cameraViewSize:', cameraViewSize);
 
     return detections.map((detection, index) => {
       const [x, y, width, height] = detection.bbox;
-      
+
       // Calculate scaling factors
       const scaleX = cameraViewSize.width / 640;
       const scaleY = cameraViewSize.height / 640;
-      
+
       // Scale the bounding box coordinates
       const scaledX = x * scaleX;
       const scaledY = y * scaleY;
       const scaledWidth = (width - x) * scaleX;
       const scaledHeight = (height - y) * scaleY;
-      
-      console.log(`Original bounding box ${index}: x=${x}, y=${y}, width=${width}, height=${height}`);
-      console.log(`Scaled bounding box ${index}: x=${scaledX}, y=${scaledY}, width=${scaledWidth}, height=${scaledHeight}`);
+
+      console.log(
+        `Original bounding box ${index}: x=${x}, y=${y}, width=${width}, height=${height}`,
+      );
+      console.log(
+        `Scaled bounding box ${index}: x=${scaledX}, y=${scaledY}, width=${scaledWidth}, height=${scaledHeight}`,
+      );
       console.log(`Scale factors: scaleX=${scaleX}, scaleY=${scaleY}`);
-      
+
       return (
         <View
           key={index}
@@ -165,16 +170,15 @@ export default function CameraScreen() {
               width: scaledWidth,
               height: scaledHeight,
             },
-          ]}
-        >
+          ]}>
           <Text style={styles.label}>{detection.label}</Text>
-          <Text style={styles.confidence}>{(detection.confidence * 100).toFixed(2)}%</Text>
+          <Text style={styles.confidence}>
+            {(detection.confidence * 100).toFixed(2)}%
+          </Text>
         </View>
       );
     });
   };
-
-
 
   // Send image to predict server
   const sendImageToClassificationServer = async imagePath => {
@@ -186,7 +190,7 @@ export default function CameraScreen() {
     });
 
     try {
-      const response = await fetch('http://10.30.0.179:5000/predict', {
+      const response = await fetch('http://13.124.74.207:5000/predict', {
         method: 'POST',
         body: formData,
         headers: {
@@ -235,6 +239,9 @@ export default function CameraScreen() {
             setRecognizedText(message);
             speak(message);
             console.log('약 감지 결과:', message);
+            navigation.navigate('Inform', {
+              medicineName: classificationResult.class,
+            });
           }
         }
         ////////////////////////////////////////////////////////////////////////////
@@ -330,7 +337,7 @@ export default function CameraScreen() {
         setRecognizedText('OCR Error occurred');
       }
     },
-    [camera, isSpeaking]
+    [camera, isSpeaking],
   );
 
   useEffect(() => {
@@ -374,6 +381,20 @@ export default function CameraScreen() {
 
         // 이미지 전송
         console.log('사진 저장됨:', destinationPath);
+        /////////////////////////////////////////////////////////////
+        const classificationResult = await sendImageToClassificationServer(
+          destinationPath,
+        );
+        if (classificationResult) {
+          const message = `감지된 약: ${classificationResult.class}`;
+          setRecognizedText(message);
+          speak(message);
+          console.log('약 감지 결과:', message);
+          navigation.navigate('Inform', {
+            medicineName: classificationResult.class,
+          });
+        }
+        ///////////////////////////////////////////////////////////////
       } catch (error) {
         console.log('사진 저장 중 오류 발생:', error);
       }
@@ -410,14 +431,13 @@ export default function CameraScreen() {
       return <View className="flex-1" />;
     } else {
       return (
-        <View 
+        <View
           className="flex-1 pt-4"
-          onLayout={(event) => {
+          onLayout={event => {
             const {width, height} = event.nativeEvent.layout;
             console.log('Camera view layout:', width, height);
             setCameraViewSize({width, height});
-          }}
-        >
+          }}>
           {takePhotoClicked ? (
             <View className="flex-1">
               {/* Camera */}
@@ -492,7 +512,7 @@ export default function CameraScreen() {
       );
     }
   }
-  
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
