@@ -34,6 +34,7 @@
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-image-picker/android" />
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-image-resizer/android" />
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-linear-gradient/android" />
+            <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-permissions/android" />
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-push-notification/android" />
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-reanimated/android" />
             <option value="$PROJECT_DIR$/FE/App/node_modules/react-native-safe-area-context/android" />

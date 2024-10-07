@@ -27,7 +27,6 @@ stride, names, pt = model.stride, model.names, model.pt
 imgsz = check_img_size((640, 640), s=stride)
 
 @app.route('/detect', methods=['POST'])
-@app.route('/detect', methods=['POST'])
 def detect():
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
@@ -35,7 +34,7 @@ def detect():
     file = request.files['image']
     img_bytes = file.read()
     img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
-    
+
     # Preprocess image
     img = cv2.resize(img, (imgsz[0], imgsz[1]))
     img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
@@ -46,22 +45,33 @@ def detect():
 
     # Inference
     pred = model(img)
-    
-    # Apply NMS
+
+    # Apply NMS (Non-Maximum Suppression)
     pred = non_max_suppression(pred, conf_thres=0.4, iou_thres=0.5, max_det=1000)
 
     # Process detections
-    result = False
+    detections = []
     for i, det in enumerate(pred):  # per image
         if len(det):
+            det[:, :4] = scale_boxes(imgsz, det[:, :4], img.shape[2:]).round()
             for *xyxy, conf, cls in reversed(det):
-                if conf >= 0.7:
-                    result = True
-                    break
-        if result:
-            break
+                if conf >= 0.7:  # Confidence threshold
+                    # Extract bounding box coordinates
+                    x1, y1, x2, y2 = map(int, xyxy)  # Convert to int
+                    label = names[int(cls)]  # Get class label
+                    confidence = float(conf)  # Convert confidence to float
 
-    return jsonify({"result": result})
+                    # Add detection info to list
+                    detections.append({
+                        "label": label,
+                        "confidence": confidence,
+                        "bbox": [x1, y1, x2, y2]
+                    })
+
+    # Determine if any detections were made
+    result = len(detections) > 0
+
+    return jsonify({"result": result, "detections": detections})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

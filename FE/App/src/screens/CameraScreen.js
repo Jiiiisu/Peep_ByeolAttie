@@ -190,7 +190,7 @@ export default function CameraScreen() {
     });
 
     try {
-      const response = await fetch('http://10.30.0.179:5000/predict', {
+      const response = await fetch('http://13.124.74.207:5000/predict', {
         method: 'POST',
         body: formData,
         headers: {
@@ -381,6 +381,20 @@ export default function CameraScreen() {
 
         // 이미지 전송
         console.log('사진 저장됨:', destinationPath);
+        /////////////////////////////////////////////////////////////
+        const classificationResult = await sendImageToClassificationServer(
+          destinationPath,
+        );
+        if (classificationResult) {
+          const message = `감지된 약: ${classificationResult.class}`;
+          setRecognizedText(message);
+          speak(message);
+          console.log('약 감지 결과:', message);
+          navigation.navigate('Inform', {
+            medicineName: classificationResult.class,
+          });
+        }
+        ///////////////////////////////////////////////////////////////
       } catch (error) {
         console.log('사진 저장 중 오류 발생:', error);
       }
