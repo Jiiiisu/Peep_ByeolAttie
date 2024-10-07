@@ -12,7 +12,11 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from '@react-navigation/native';
 import Voice from '@react-native-voice/voice';
 import {speak} from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -29,7 +33,7 @@ export default function InputScreen({route}) {
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [currentStep, setCurrentStep] = useState('');
   const [isInitialized, setIsInitialized] = useState(false); //TTS가 한번만 출력되도록 하는 변수
-  
+
   useFocusEffect(
     useCallback(() => {
       // 화면이 포커스를 받을 때마다 실행
@@ -39,37 +43,37 @@ export default function InputScreen({route}) {
         setCurrentStep('name');
       }
       setIsVoiceMode(route.params?.isVoiceMode || false);
-
+      initializeScreen();
       return () => {
         // 화면이 포커스를 잃을 때 실행 (필요한 경우)
       };
-    }, [route.params])
+    }, [route.params]),
   );
 
   useEffect(() => {
-    const initializeScreen = async () => {
-      if (route.params?.editItem) {
-        const { name, dosage } = route.params.editItem;
-        setName(name);
-        const match = dosage.match(/1회 (\d+)알/);
-        if (match) {
-          setDosage(match[1]);
-        }
-      }
-
-      await initVoice();
-
-      if (route.params?.isVoiceMode) {
-        startVoiceInput();
-      }
-    };
-
     initializeScreen();
 
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
     };
   }, [isVoiceMode, currentStep]);
+
+  const initializeScreen = async () => {
+    if (route.params?.editItem) {
+      const {name, dosage} = route.params.editItem;
+      setName(name);
+      const match = dosage.match(/1회 (\d+)알/);
+      if (match) {
+        setDosage(match[1]);
+      }
+    }
+
+    await initVoice();
+
+    if (route.params?.isVoiceMode) {
+      startVoiceInput();
+    }
+  };
 
   const initVoice = async () => {
     try {
@@ -95,7 +99,9 @@ export default function InputScreen({route}) {
       }, 2000);
     } else if (currentStep === 'confirmation') {
       setTimeout(async () => {
-        await speak(`입력된 정보를 확인해 주세요. 약 이름은 ${name}이고, 복용량은 1회 ${dosage}알입니다. 맞으면 맞아요, 틀리면 아니오라고 말씀해 주세요.`);
+        await speak(
+          `입력된 정보를 확인해 주세요. 약 이름은 ${name}이고, 복용량은 1회 ${dosage}알입니다. 맞으면 맞아요, 틀리면 아니오라고 말씀해 주세요.`,
+        );
         startListening();
       }, 2000);
     }
@@ -138,31 +144,31 @@ export default function InputScreen({route}) {
     }
   };
 
+  const handleVoiceInput = useCallback(
+    input => {
+      switch (currentStep) {
+        case 'name':
+          handleNameInput(input);
+          break;
+        case 'dosage':
+          handleDosageInput(input);
+          break;
+        case 'confirmation':
+          handleConfirmation(input);
+          break;
+      }
+    },
+    [currentStep],
+  );
 
-  const handleVoiceInput = useCallback((input) => {
-    switch (currentStep) {
-      case 'name':
-        handleNameInput(input);
-        break;
-      case 'dosage':
-        handleDosageInput(input);
-        break;
-      case 'confirmation':
-        handleConfirmation(input);
-        break;
-    }
-  }, [currentStep]);
-
-  const handleNameInput = input => {    
+  const handleNameInput = input => {
     if (input.length > 0) {
       console.log('약 이름을 입력받았습니다. 다음 질문으로 넘어갑니다');
       setName(input);
       setCurrentStep('dosage');
       //setTimeout(() => startVoiceInput(), 1000);
     } else {
-      speak(
-        '인식된 약 이름이 없습니다. 약 이름을 다시 말씀해 주세요.',
-      );
+      speak('인식된 약 이름이 없습니다. 약 이름을 다시 말씀해 주세요.');
       setTimeout(() => startListening(), 3000);
     }
   };
@@ -176,7 +182,7 @@ export default function InputScreen({route}) {
         영: 0,
         하나: 1,
         한: 1,
-        반 : 1,
+        반: 1,
         둘: 2,
         두: 2,
         무: 2,
@@ -212,7 +218,9 @@ export default function InputScreen({route}) {
     console.log('변환된 dosage: ', dosage);
 
     if (dosage.length > 0) {
-      console.log('복용할 약의 갯수를 입력받았습니다. 확인 질문으로 넘어갑니다');
+      console.log(
+        '복용할 약의 갯수를 입력받았습니다. 확인 질문으로 넘어갑니다',
+      );
       setDosage(dosage);
       setCurrentStep('confirmation');
       //setTimeout(() => startVoiceInput(), 1000);
