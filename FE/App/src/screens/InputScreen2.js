@@ -218,66 +218,23 @@ export default function InputScreen2({route}) {
 
     const koreanToArabic = koreanNumber => {
       const koreanNumbers = {
-        일: 1,
-        이: 2,
-        삼: 3,
-        사: 4,
-        오: 5,
-        육: 6,
-        칠: 7,
-        팔: 8,
-        구: 9,
-        십: 10,
-        십일: 11,
-        십이: 12,
-        십삼: 13,
-        십사: 14,
-        십오: 15,
-        십육: 16,
-        십칠: 17,
-        십팔: 18,
-        십구: 19,
-        이십: 20,
-        이십일: 21,
-        이십이: 22,
-        이십삼: 23,
-        이십사: 24,
-        한: 1,
-        두: 2,
-        세: 3,
-        네: 4,
-        다섯: 5,
-        여섯: 6,
-        일곱: 7,
-        여덟: 8,
-        아홉: 9,
-        열: 10,
-        열한: 11,
-        열두: 12,
-        열세: 13,
-        열네: 14,
-        열다섯: 15,
-        열여섯: 16,
-        열일곱: 17,
-        열여덟: 18,
-        열아홉: 19,
-        스물: 20,
-        스물한: 21,
-        스물두: 22,
-        스물세: 23,
-        스물네: 24,
+        일: 1, 이: 2, 삼: 3, 사: 4, 오: 5, 육: 6, 칠: 7, 팔: 8, 구: 9, 십: 10,
+        십일: 11, 십이: 12, 십삼: 13, 십사: 14, 십오: 15, 십육: 16, 십칠: 17, 십팔: 18, 십구: 19,
+        이십: 20, 이십일: 21, 이십이: 22, 이십삼: 23, 이십사: 24,
+        한: 1, 두: 2, 세: 3, 네: 4, 다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9,
+        열: 10, 열한: 11, 열두: 12, 열세: 13, 열네: 14, 열다섯: 15, 열여섯: 16, 열일곱: 17, 열여덟: 18, 열아홉: 19,
+        스물: 20, 스물한: 21, 스물두: 22, 스물세: 23, 스물네: 24,
       };
-      return koreanNumbers[koreanNumber] || koreanNumber;
+      return koreanNumbers[koreanNumber] || parseInt(koreanNumber);
     };
 
     const convertTime = (hours, minutes, period) => {
-      hours = parseInt(koreanToArabic(hours));
-      minutes = minutes ? parseInt(minutes) : 0;
+      hours = koreanToArabic(hours);
+      minutes = minutes ? koreanToArabic(minutes) : 0;
 
-      if (period === '오후' || period === '저녁') {
-        //아침이나 저녁 n시 이렇게 입력하는 경우도 포함
+      if (period === '오후' || period === '저녁' || period === '밤') {
         if (hours < 12) hours += 12;
-      } else if (period === '오전' || period === '아침') {
+      } else if (period === '오전' || period === '아침' || period === '새벽') {
         if (hours === 12) hours = 0;
       }
 
@@ -291,14 +248,20 @@ export default function InputScreen2({route}) {
         return timeKeywords[phrase];
       }
 
-      const match = phrase.match(
-        /^(아침|점심|저녁|오전|오후)?\s*(\d{1,2})(시)?\s*(\d{1,2})?(분)?$/,
-      );
+      const match = phrase.match(/^(아침|점심|저녁|오전|오후|밤|새벽)?\s*(\d{1,2}|[일이삼사오육칠팔구십]+)시\s*(반|(\d{1,2}|[일이삼사오육칠팔구십]+)\s*분?)?$/);
       if (match) {
-        const [_, period, hours, __, minutes] = match;
-        return convertTime(hours, minutes, period);
+        const [_, period, hours, minutesPart] = match;
+        let processedMinutes = 0;
+        if (minutesPart) {
+          if (minutesPart === '반') {
+            processedMinutes = 30;
+          } else {
+            processedMinutes = koreanToArabic(minutesPart.replace(/\s*분?$/, ''));
+          }
+        }
+        return convertTime(hours, processedMinutes, period);
       }
-
+  
       return null;
     };
 
@@ -312,32 +275,8 @@ export default function InputScreen2({route}) {
     const times = input.toLowerCase().split(/[,]+/).map(t => t.trim());
   
     const convertedTimes = times.flatMap(phrase => {
-      const words = phrase.split(/\s+/);
-      if (words.length === 1) {
-        if (timeKeywords[words[0]]) {
-          return [timeKeywords[words[0]]];
-        } else {
-          const time = processTimePhrase(words[0]);
-          return time ? [time] : [];
-        }
-      } else if (words.length === 2) {
-        const pairResult = processPairKeywords(words[0], words[1]);
-        if (pairResult) {
-          return pairResult;
-        } else {
-          const time = processTimePhrase(phrase);
-          return time ? [time] : [];
-        }
-      } else {
-        return words.flatMap(word => {
-          if (timeKeywords[word]) {
-            return [timeKeywords[word]];
-          } else {
-            const time = processTimePhrase(word);
-            return time ? [time] : [];
-          }
-        });
-      }
+      const time = processTimePhrase(phrase);
+      return time ? [time] : [];
     });
 
     if (convertedTimes.length > 0) {

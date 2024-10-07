@@ -22,6 +22,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Logo from '../../assets/images/Logo.svg';
 import {useTheme} from '../constants/ThemeContext';
+import Tts from 'react-native-tts';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -47,13 +48,20 @@ export default function ScheduleScreen() {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchDrugList();
 
-      setTimeout(() => {
-        if (route.params?.startVoiceHandler) {
-          handleScheduleVoice(navigation, () => {});
-        } else {
-          handleScheduleVoice(navigation, () => {}, false);
-        }
-      }, 1000);
+      // stopTTS 파라미터 확인
+      if (route.params?.stopTTS) {
+        // TTS 중지 및 파라미터 제거
+        Tts.stop();
+        navigation.setParams({ stopTTS: undefined });
+      } else {
+        setTimeout(() => {
+          if (route.params?.startVoiceHandler) {
+            handleScheduleVoice(navigation, () => {});
+          } else {
+            handleScheduleVoice(navigation, () => {}, false);
+          }
+        }, 1000);
+      }
     });
 
     return unsubscribe;

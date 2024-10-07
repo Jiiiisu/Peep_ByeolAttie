@@ -1,6 +1,7 @@
 import Tts from 'react-native-tts';
 import Voice from '@react-native-voice/voice';
 import {ToastAndroid, Platform} from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 
 let isListening = false;
 let timeoutId = null;
@@ -26,27 +27,38 @@ export const cleanupAndNavigate = (navigation, resetVoiceState, screenName, para
   
   switch (screenName) {
     case 'Home':
-      navigation.reset({
-        index: 0,
-        routes: [{name: 'Home', params: {...commonParams, resetVoice: true}}],
-      });
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{name: 'Home', params: {...commonParams, resetVoice: true}}],
+        })
+      );
       break;
     case 'Input1':
-      navigation.navigate(screenName, {
-        ...commonParams,
-        name: '',  // name을 빈 문자열로 초기화
-        dosage: '',  // dosage를 빈 문자열로 초기화
-      });
+      navigation.dispatch(
+        CommonActions.navigate({
+          name: screenName,
+          params: {
+            ...commonParams,
+            name: '',
+            dosage: '',
+          }
+        })
+      );
       break;
     default:
-      navigation.navigate(screenName, commonParams);
+      navigation.dispatch(
+        CommonActions.navigate({
+          name: screenName,
+          params: commonParams
+        })
+      );
   }
 };
 
 export const handleScheduleVoice = async (navigation, resetVoiceState) => {
   // Voice 모듈 초기화 및 이벤트 리스너 설정
   isCancelled = false;
-  let medicationName = '';
   let currentStep = 'inputMethod';
 
   const initVoice = async () => {
@@ -57,7 +69,6 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
 
       Voice.onSpeechStart = onSpeechStart;
       Voice.onSpeechEnd = onSpeechEnd;
-      //Voice.onSpeechResults = (e) => handleSpeechResults(e, navigation, resetVoiceState);
       Voice.onSpeechResults = handleSpeechResults;
       Voice.onSpeechError = handleSpeechError;
     } catch (e) {
@@ -66,14 +77,12 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
   };
 
   const onSpeechStart = e => {
-    //if (isCancelled) return;
     console.log('onSpeechStart: ', e);
     isListening = true;
     clearTimeout(timeoutId);
   };
 
   const onSpeechEnd = e => {
-    //if (isCancelled) return;
     console.log('onSpeechEnd: ', e);
     isListening = false;
   };
@@ -83,7 +92,6 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
     if (e.value && e.value.length > 0) {
       const result = e.value[0].toLowerCase();
       console.log('Recognized speech:', result);
-      //clearTimeout(timeoutId);  // 음성 인식 결과가 있으면 타임아웃 취소
 
       // 음성 출력 내용이 포함되어 있다면 무시
       if (result.includes('입력하시려면 음성 ')) {
@@ -96,21 +104,35 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
       if (result.includes('음성')) {
         isVoiceMode = true; // 음성 모드로 설정
         // Input1로 화면 전환
-        setTimeout(() => {
-          cleanupAndNavigate(navigation, resetVoiceState, 'Input1', {isVoiceMode});
-        }, 2000);
+        await cleanupAndNavigate(navigation, resetVoiceState, 'Input1', {isVoiceMode});
         currentStep = 'name';
       } else if (result.includes('텍스트')) {
         isVoiceMode = false; // 텍스트 모드로 설정
-        cleanupAndNavigate(navigation, resetVoiceState, 'Input1');
+        cleanupAndNavigate(navigation, resetVoiceState, 'Input1', {isVoiceMode: false});
       } else if (result.includes('취소')) {
         await speak('알림 설정을 취소합니다');
+        // 네비게이션 스택 초기화 및 TTS 중지 플래그 전달
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              { name: 'Home' },
+              { 
+                name: 'Schedule',
+                params: { resetVoice: true, stopTTS: true }
+              }
+            ],
+          })
+        );
+        
         isCancelled = true;
         stopListening();
         Voice.destroy().then(Voice.removeAllListeners);
         if (typeof resetVoiceState === 'function') {
           resetVoiceState();
         }
+        // 여기서 함수 실행을 종료합니다.
+        return;
       } else {
         await speak('잘못 들었습니다. 다시 말씀해 주세요.');
         await askForInputMethod();
@@ -294,13 +316,3 @@ export const speak = async text => {
 export const resetVoiceRecognition = () => {
   isVoiceRecognitionEnabled = true;
 };
-
-// export const handleMedicationVoiceResult = (result, navigation) => {
-//   // 여기서 약 이름을 처리하는 로직을 구현합니다.
-//   // 예: 데이터베이스에 저장하거나 다음 단계로 진행
-//   if (result && result.length > 0) {
-//     console.log('Medication name:', result);
-//     // 음성으로 인식된 약 이름을 InputScreen1로 전달
-//     navigation.navigate('Input1', { recognizedDrugName: result });
-//   }
-// };
