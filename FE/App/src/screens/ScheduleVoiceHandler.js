@@ -1,7 +1,7 @@
 import Tts from 'react-native-tts';
 import Voice from '@react-native-voice/voice';
 import {ToastAndroid, Platform} from 'react-native';
-import { CommonActions } from '@react-navigation/native';
+import {CommonActions} from '@react-navigation/native';
 
 let isListening = false;
 let timeoutId = null;
@@ -9,7 +9,12 @@ let isCancelled = false;
 let isVoiceMode = false; // 음성모드 or 텍스트모드 상태 변수
 let isSpeaking = false; //TTS가 말하고 있는지 추적하는 변수
 
-export const cleanupAndNavigate = (navigation, resetVoiceState, screenName, params = {}) => {
+export const cleanupAndNavigate = (
+  navigation,
+  resetVoiceState,
+  screenName,
+  params = {},
+) => {
   isCancelled = true;
   stopListening();
   Tts.stop();
@@ -22,16 +27,16 @@ export const cleanupAndNavigate = (navigation, resetVoiceState, screenName, para
   const commonParams = {
     ...params,
     isVoiceMode: params.isVoiceMode || false,
-    resetInputs: true  // 이 플래그를 추가하여 InputScreen1에서 입력값 초기화를 트리거합니다.
+    resetInputs: true, // 이 플래그를 추가하여 InputScreen1에서 입력값 초기화를 트리거합니다.
   };
-  
+
   switch (screenName) {
     case 'Home':
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
-          routes: [{name: 'Home', params: {...commonParams, resetVoice: true}}],
-        })
+          routes: [{name: screenName, params: {resetVoice: true}}],
+        }),
       );
       break;
     case 'Input1':
@@ -42,16 +47,16 @@ export const cleanupAndNavigate = (navigation, resetVoiceState, screenName, para
             ...commonParams,
             name: '',
             dosage: '',
-          }
-        })
+          },
+        }),
       );
       break;
     default:
       navigation.dispatch(
         CommonActions.navigate({
           name: screenName,
-          params: commonParams
-        })
+          params: commonParams,
+        }),
       );
   }
 };
@@ -104,11 +109,15 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
       if (result.includes('음성')) {
         isVoiceMode = true; // 음성 모드로 설정
         // Input1로 화면 전환
-        await cleanupAndNavigate(navigation, resetVoiceState, 'Input1', {isVoiceMode});
+        await cleanupAndNavigate(navigation, resetVoiceState, 'Input1', {
+          isVoiceMode,
+        });
         currentStep = 'name';
       } else if (result.includes('텍스트')) {
         isVoiceMode = false; // 텍스트 모드로 설정
-        cleanupAndNavigate(navigation, resetVoiceState, 'Input1', {isVoiceMode: false});
+        cleanupAndNavigate(navigation, resetVoiceState, 'Input1', {
+          isVoiceMode: false,
+        });
       } else if (result.includes('취소')) {
         await speak('알림 설정을 취소합니다');
         // 네비게이션 스택 초기화 및 TTS 중지 플래그 전달
@@ -116,15 +125,15 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
           CommonActions.reset({
             index: 0,
             routes: [
-              { name: 'Home' },
-              { 
+              {name: 'Home'},
+              {
                 name: 'Schedule',
-                params: { resetVoice: true, stopTTS: true }
-              }
+                params: {resetVoice: true, stopTTS: true},
+              },
             ],
-          })
+          }),
         );
-        
+
         isCancelled = true;
         stopListening();
         Voice.destroy().then(Voice.removeAllListeners);
