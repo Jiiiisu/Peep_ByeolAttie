@@ -1,61 +1,122 @@
 from flask import Flask, request, jsonify
-from werkzeug.utils import secure_filename
-import os
-import subprocess
-import re  # 정규식을 사용하기 위해 추가
+from flask_cors import CORS
+import torch
+import cv2
+import numpy as np
+import io
+import json
+from keras.models import load_model
+from PIL import Image, ImageOps
+from pathlib import Path
+import sys
 
+
+import pathlib
+temp = pathlib.PosixPath
+pathlib.PosixPath = pathlib.WindowsPath
+
+# Set up the app
 app = Flask(__name__)
+CORS(app)
 
-UPLOAD_FOLDER = './uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# Load YOLOv5 model
+yolov5_path = Path("C:/Users/Y/Desktop/yolo/1001/yolov5")
+sys.path.append(str(yolov5_path))
+
+from models.common import DetectMultiBackend
+from utils.general import check_img_size, non_max_suppression, scale_boxes
+from utils.torch_utils import select_device
+
+weights = "best.pt"
+device = select_device("")
+model = DetectMultiBackend(weights, device=device)
+stride, names, pt = model.stride, model.names, model.pt
+imgsz = check_img_size((640, 640), s=stride)
+
+# Load Keras model
+keras_model = load_model("./keras_model.h5", compile=False)
+class_names = open("./labels.txt", "r", encoding="utf-8").readlines()
 
 @app.route('/detect', methods=['POST'])
 def detect():
     if 'image' not in request.files:
-        return jsonify({'success': False, 'message': 'No image uploaded'}), 400
+        return jsonify({"error": "No image file provided"}), 400
 
-    image = request.files['image']
-    if image.filename == '':
-        return jsonify({'success': False, 'message': 'No selected file'}), 400
+    file = request.files['image']
+    img_bytes = file.read()
+    img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
+    
+    # Preprocess image
+    img = cv2.resize(img, (imgsz[0], imgsz[1]))
+    img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+    img = np.ascontiguousarray(img)
+    img = torch.from_numpy(img).to(device)
+    img = img.float() / 255.0
+    img = img.unsqueeze(0)
 
-    # 이미지 파일을 저장할 경로
-    filename = secure_filename(image.filename)
-    image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    image.save(image_path)
+    # Inference
+    pred = model(img)
+    
+    # Apply NMS (Non-Maximum Suppression)
+    pred = non_max_suppression(pred, conf_thres=0.4, iou_thres=0.5, max_det=1000)
 
-    # detect2.py 실행
-    try:
-        result = subprocess.run(
-            ['python', 'detect2.py', '--weights', '/content/best.pt', '--imgsz', '640', 
-             '--conf-thres', '0.4', '--iou-thres', '0.5', '--source', image_path, 
-             '--save-csv', '--save-crop', '--project', '/content/runs/detect', 
-             '--name', 'pill_detection', '--exist-ok'], 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE, 
-            text=True
-        )
-        
-        # 출력에서 신뢰도 값 추출
-        output = result.stdout
-        print("Detect Output:", output)  # 여기에 추가
-        print(output)  # 디버깅을 위해 출력 내용 확인
-        confidence_match = re.search(r'Detected pills with confidence (\d+\.\d+)', output)
+    # Process detections
+    detections = []
+    for i, det in enumerate(pred):  # per image
+        if len(det):
+            det[:, :4] = scale_boxes(imgsz, det[:, :4], img.shape[2:]).round()
+            for *xyxy, conf, cls in reversed(det):
+                if conf >= 0.7:  # Confidence threshold
+                    # Extract bounding box coordinates
+                    x1, y1, x2, y2 = map(int, xyxy)  # Convert to int
+                    label = names[int(cls)]  # Get class label
+                    confidence = float(conf)  # Convert confidence to float
 
-        if confidence_match:
-            confidence = float(confidence_match.group(1))
-            
-            # 신뢰도에 따른 응답
-            if confidence >= 0.9:
-                return jsonify({'success': True, 'confidence': confidence})
-            else:
-                return jsonify({'success': False, 'confidence': confidence})
-        else:
-            return jsonify({'success': False, 'message': 'Confidence not found in output'}), 500
+                    # Add detection info to list
+                    detections.append({
+                        "label": label,
+                        "confidence": confidence,
+                        "bbox": [x1, y1, x2, y2]
+                    })
 
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+    # Determine if any detections were made
+    result = len(detections) > 0
+
+    return jsonify({"result": result, "detections": detections})
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image provided'}), 400
+
+    file = request.files['image']
+    image_bytes = file.read()
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+
+    size = (224, 224)
+    image = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
+    image_array = np.asarray(image)
+    normalized_image_array = (image_array.astype(np.float32) / 127.5) - 1
+
+    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+    data[0] = normalized_image_array
+
+    prediction = keras_model.predict(data)
+    index = np.argmax(prediction)
+
+    # Extract class name and confidence score
+    class_name = class_names[index][2:].strip()  # Clean up class name
+    confidence_score = float(prediction[0][index])
+
+    # Return result in JSON format
+    result = {
+        'class': class_name,
+        'confidence': confidence_score
+    }
+
+    #return jsonify(result, ensure_ascii=False)
+    return json.dumps(result, ensure_ascii=False)
+
 
 if __name__ == '__main__':
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)  # 저장 폴더가 없으면 생성
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
