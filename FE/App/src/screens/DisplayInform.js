@@ -58,9 +58,30 @@ const DisplayInform = ({route}) => {
   };
 
   const startSpeak = async () => {
-    const fullText = `${name}. 이 약은 ${className}입니다. 
-    효능: ${efcyQesitm}
-    사용법: ${useMethodQesitm}`;
+    let textParts = [];
+
+    if (name) {
+      textParts.push(name);
+    }
+
+    if (className) {
+      textParts.push(`이 약은 ${className}입니다.`);
+    }
+
+    if (efcyQesitm) {
+      textParts.push(`효능: ${efcyQesitm}`);
+    }
+
+    if (useMethodQesitm) {
+      textParts.push(`사용법: ${useMethodQesitm}`);
+    }
+
+    let fullText = textParts.join(' ');
+
+    if (fullText === '') {
+      fullText = '약 정보가 없습니다.';
+    }
+
     speak(fullText);
   };
 
@@ -97,10 +118,7 @@ const DisplayInform = ({route}) => {
           importantForAccessibility="no">
           {error}
         </Text>
-        <Text
-          className="text-black dark:text-white text-[24px] font-Regular"
-          accessible={false}
-          importantForAccessibility="no">
+        <Text className="text-black dark:text-white text-[24px] font-Regular">
           앱을 다시 시작해주세요
         </Text>
       </View>
@@ -131,6 +149,9 @@ const DisplayInform = ({route}) => {
     );
   }
 
+  const noInfoAvailable =
+    !name && !className && !efcyQesitm && !useMethodQesitm && !atpnWarnQesitm;
+
   return (
     <View className="flex-1 bg-default-1 dark:bg-neutral-900">
       {renderHeader()}
@@ -138,29 +159,42 @@ const DisplayInform = ({route}) => {
         ref={scrollViewRef}
         className="px-5 flex-1"
         contentContainerStyle={{paddingBottom: 20}}>
-        {image && (
-          <Image
-            source={{uri: image}}
-            className="mb-2 self-center"
-            resizeMode="contain"
-            style={{width: wp(60), height: hp(20)}}
-          />
-        )}
+        {noInfoAvailable ? (
+          <View className="flex-1 items-center justify-center p-20">
+            <Text
+              className="text-black dark:text-white text-[24px] font-Bold"
+              accessible={false}
+              importantForAccessibility="no">
+              약 정보가 없습니다
+            </Text>
+          </View>
+        ) : (
+          <>
+            {image && (
+              <Image
+                source={{uri: image}}
+                className="mb-2 self-center"
+                resizeMode="contain"
+                style={{width: wp(60), height: hp(20)}}
+              />
+            )}
 
-        {name && (
-          <Text
-            className="text-black dark:text-white text-[30px] font-ExtraBold mb-4 self-center"
-            accessible={false}
-            importantForAccessibility="no">
-            {name}
-          </Text>
-        )}
+            {name && (
+              <Text
+                className="text-black dark:text-white text-[30px] font-ExtraBold mb-4 self-center"
+                accessible={false}
+                importantForAccessibility="no">
+                {name}
+              </Text>
+            )}
 
-        <InfoSection title="분류" content={className} />
-        <InfoSection title="효능" content={efcyQesitm} />
-        <InfoSection title="사용법" content={useMethodQesitm} />
-        {atpnWarnQesitm && (
-          <InfoSection title="경고" content={atpnWarnQesitm} />
+            <InfoSection title="분류" content={className} />
+            <InfoSection title="효능" content={efcyQesitm} />
+            <InfoSection title="사용법" content={useMethodQesitm} />
+            {atpnWarnQesitm && (
+              <InfoSection title="경고" content={atpnWarnQesitm} />
+            )}
+          </>
         )}
       </ScrollView>
 
