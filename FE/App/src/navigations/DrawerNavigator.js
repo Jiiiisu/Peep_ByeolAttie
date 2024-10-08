@@ -62,20 +62,7 @@ const CustomDrawerContent = props => {
           className={`text-[24px] font-Regular ml-4 ${
             isDark ? 'text-white' : 'text-black'
           }`}>
-          카메라 테스트
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        className={`flex-row items-center p-3 rounded-lg mb-2 ${
-          isDark ? 'bg-gray-700' : 'bg-gray-100'
-        }`}
-        onPress={() => props.navigation.navigate('DisplayInform')}>
-        <Icon name="book" size={24} color={isDark ? '#fff' : '#000'} />
-        <Text
-          className={`text-[24px] font-Regular ml-4 ${
-            isDark ? 'text-white' : 'text-black'
-          }`}>
-          약 정보 테스트
+          카메라
         </Text>
       </TouchableOpacity>
       <TouchableOpacity

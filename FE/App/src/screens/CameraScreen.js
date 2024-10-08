@@ -7,6 +7,7 @@ import {
   NativeModules,
   Alert,
   ActivityIndicator,
+  ToastAndroid,
 } from 'react-native';
 import React, {useRef, useState, useCallback, useEffect} from 'react';
 import {Camera, useCameraDevices} from 'react-native-vision-camera';
@@ -63,6 +64,8 @@ export default function CameraScreen() {
   const [classificationResult, setClassificationResult] = useState(null);
   /////////////////////////////////////////////////////////////////
   const [isLoading, setIsLoading] = useState(false);
+  const [isAutoCapturing, setIsAutoCapturing] = useState(true);
+  const [isDetected, setIsDetected] = useState(false);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', e => {
@@ -75,6 +78,7 @@ export default function CameraScreen() {
       } else {
         // 카메라 화면에서 뒤로가기
         stopEverything();
+        navigation.goBack();
       }
     });
 
@@ -96,12 +100,16 @@ export default function CameraScreen() {
         setIsCameraActive(false);
         stopEverything();
       };
-    }, []),
+    }, [stopEverything])
   );
 
   const stopEverything = useCallback(() => {
     Tts.stop();
-    setIsCameraActive(false);
+    setIsSpeaking(false);
+    setIsProcessingEnabled(false);
+    if (ttsTimeoutRef.current) {
+      clearTimeout(ttsTimeoutRef.current);
+    }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -241,54 +249,58 @@ export default function CameraScreen() {
 
   // Capture and send image every 3 seconds
   const captureAndSendImage = useCallback(async () => {
-    if (camera.current && isCameraActive) {
+    if (camera.current && !isDetected && isAutoCapturing) {
       try {
         const photo = await camera.current.takePhoto({
           qualityPrioritization: 'speed',
           flash: 'off',
         });
 
-        console.log('Photo taken:', photo);
+        //console.log('Photo taken:', photo);
         ////////////////////////////////////////////////////////////////////
         const detectionResult = await sendImageToServer(photo.path);
 
-        if (detectionResult) {
+        if (detectionResult && detectionResult.result) {
           // 약이 감지되면 사진을 저장하고 분류 서버로 전송
+          setIsDetected(true);
+          stopEverything();
+          setIsAutoCapturing(false);  // 수동 촬영 시 자동 촬영 중지
+          setIsLoading(true);
+
           const destinationPath = `${
             RNFS.DocumentDirectoryPath
           }/images/photo_${Date.now()}.png`;
           await RNFS.moveFile(photo.path, destinationPath);
           setImageData(destinationPath);
 
-          const classificationResult = await sendImageToClassificationServer(
-            destinationPath,
-          );
+          //console.log('사진 저장됨:', destinationPath);
+
+          const classificationResult = await sendImageToClassificationServer(destinationPath);
           if (classificationResult) {
-            const message = `감지된 약: ${
-              classificationResult.class
-            }, 신뢰도: ${classificationResult.confidence.toFixed(2)}`;
-            setRecognizedText(message);
-            speak(message);
-            console.log('약 감지 결과:', message);
-            navigation.navigate('Inform', {
-              medicineName: classificationResult.class,
-            });
+            handleClassificationResult(classificationResult);
           }
         }
-        ////////////////////////////////////////////////////////////////////////////
       } catch (error) {
         console.error('Error capturing or sending image:', error);
+      } finally {
+        setIsLoading(false);
       }
     }
-  }, [camera]);
+  }, [camera, isDetected, isAutoCapturing, sendImageToServer, sendImageToClassificationServer]);
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      captureAndSendImage();
-    }, 3000); // Capture image every 3 seconds
-
-    return () => clearInterval(intervalId); // Cleanup interval on unmount
-  }, [captureAndSendImage]);
+    let intervalId;
+    if (isAutoCapturing && !isDetected) {
+      intervalId = setInterval(() => {
+        captureAndSendImage();
+      }, 3000);
+    }
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [captureAndSendImage, isDetected, isAutoCapturing]);
 
   const cleanRecognizedText = text => {
     // 각 줄을 개별적으로 처리
@@ -301,47 +313,42 @@ export default function CameraScreen() {
     return cleanedLines.filter(line => line.length > 0).join('\n');
   };
 
-  const processFrame = useCallback(
-    async frame => {
-      if (!isProcessingEnabled) return;
+  const processFrame = useCallback(async (frame) => {
+    if (!isProcessingEnabled || isDetected) return;
+    try {
+      const currentTime = Date.now();
+      if (currentTime - lastProcessedTime.current < 3000) {
+        // 3초마다 처리
+        return;
+      }
+      lastProcessedTime.current = currentTime;
 
-      try {
-        const currentTime = Date.now();
-        if (currentTime - lastProcessedTime.current < 3000) {
-          // 3초마다 처리
-          return;
-        }
-        lastProcessedTime.current = currentTime;
+      const photo = await camera.current.takePhoto({
+        qualityPrioritization: 'quality', //빠른 속도를 위해 quality에서 speed로 수정. 'speed'와 'quality' 사이의 균형을 원하면 balanced로 수정
+        flash: 'off', //off나 auto로 설정. 플래시 작동한 뒤에 초점 나가는 현장 있음
+        enableAutoStabilization: true,
+      });
 
-        const photo = await camera.current.takePhoto({
-          qualityPrioritization: 'quality', //빠른 속도를 위해 quality에서 speed로 수정. 'speed'와 'quality' 사이의 균형을 원하면 balanced로 수정
-          flash: 'off', //off나 auto로 설정. 플래시 작동한 뒤에 초점 나가는 현장 있음
-          enableAutoStabilization: true,
-        });
+      const tempFilePath = `${
+        RNFS.CachesDirectoryPath
+      }/temp_frame_${Date.now()}.jpg`;
+      await RNFS.moveFile(photo.path, tempFilePath);
 
-        const tempFilePath = `${
-          RNFS.CachesDirectoryPath
-        }/temp_frame_${Date.now()}.jpg`;
-        await RNFS.moveFile(photo.path, tempFilePath);
+      console.log('Starting custom OCR detection');
+      const customResult = await CustomMlkitOcrModule.recognizeText(
+        tempFilePath,
+      );
+      console.log('Custom OCR result:', customResult.text);
 
-        console.log('Starting custom OCR detection');
-        const customResult = await CustomMlkitOcrModule.recognizeText(
-          tempFilePath,
-        );
-        console.log('Custom OCR result:', customResult.text);
+      const cleanedText = cleanRecognizedText(customResult.text);
+      //setRecognizedText(cleanedText || 'No text recognized');
 
-        const cleanedText = cleanRecognizedText(customResult.text);
-        //setRecognizedText(cleanedText || 'No text recognized');
+      // 인식된 텍스트를 음성으로 출력
+      if (cleanedText && cleanedText !== 'No text recognized' && cleanedText !== lastSpokenText.current) {
+        lastSpokenText.current = cleanedText;
+        setRecognizedText(cleanedText || 'No text recognized'); // 화면에 표시할 텍스트 업데이트
 
-        // 인식된 텍스트를 음성으로 출력
-        if (
-          cleanedText &&
-          cleanedText !== 'No text recognized' &&
-          cleanedText !== lastSpokenText.current
-        ) {
-          lastSpokenText.current = cleanedText;
-          setRecognizedText(cleanedText || 'No text recognized'); // 화면에 표시할 텍스트 업데이트
-
+        if (!isDetected) {  // 약물이 감지되지 않았을 때만 TTS 실행
           setIsSpeaking(true);
           setIsProcessingEnabled(false);
           ttsStartTimeRef.current = Date.now(); // TTS 시작 시간 기록
@@ -356,14 +363,12 @@ export default function CameraScreen() {
             lastSpokenText.current = '';
           }, 7000);
         }
-        await RNFS.unlink(tempFilePath);
-      } catch (error) {
-        console.error('OCR Error:', error);
-        setRecognizedText('OCR Error occurred');
       }
-    },
-    [camera, isProcessingEnabled],
-  );
+    } catch (error) {
+      console.error('OCR Error:', error);
+      setRecognizedText('OCR Error occurred');
+    }
+  }, [isProcessingEnabled, isDetected]);
 
   useEffect(() => {
     console.log('Recognized Text:', recognizedText);
@@ -382,52 +387,50 @@ export default function CameraScreen() {
   }, []);
 
   const takePicture = async () => {
-    if (camera.current && isCameraActive) {
+    if (camera.current) {
+      stopEverything();
+      setIsAutoCapturing(false);  // 수동 촬영 시 자동 촬영 중지
+      setIsLoading(true);
       try {
-        setIsLoading(true);
         const photo = await camera.current.takePhoto();
         const imagePath = photo.path;
-        // 사진을 특정 폴더에 저장하는 로직 추가
-        //const destinationPath = `${RNFS.DocumentDirectoryPath}/images/1.png`;
-        const destinationPath = `${
-          RNFS.DocumentDirectoryPath
-        }/images/photo_${Date.now()}.png`; //매번 새로운 파일 이름으로 저장하도록 수정
-        // 디렉토리 생성(존재하지 않으면)
+        const destinationPath = `${RNFS.DocumentDirectoryPath}/images/photo_${Date.now()}.png`;
         const dirPath = `${RNFS.DocumentDirectoryPath}/images`;
         if (!(await RNFS.exists(dirPath))) {
           await RNFS.mkdir(dirPath);
         }
-        // 사진 이동
         await RNFS.moveFile(imagePath, destinationPath);
         setImageData(destinationPath);
         setTakePhotoClicked(false);
-        // 이미지 전송
         console.log('사진 저장됨:', destinationPath);
-        /////////////////////////////////////////////////////////////
-        const classificationResult = await sendImageToClassificationServer(
-          destinationPath,
-        );
-        if (classificationResult && classificationResult.class) {
-          const message = `감지된 약: ${classificationResult.class}`;
-          setRecognizedText(message);
-          speak(message);
-          console.log('약 감지 결과:', message);
-          navigation.navigate('Inform', {
-            medicineName: classificationResult.class,
-          });
+        
+        const classificationResult = await sendImageToClassificationServer(destinationPath);
+        if (classificationResult) {
+          handleClassificationResult(classificationResult);
         } else {
           throw new Error('알약이 감지되지 않음');
         }
       } catch (error) {
         console.error('Error in takePicture:', error);
-        Alert.alert('Error', '약이 인식되지 않았습니다. 다시 시도해주세요.', [
-          {text: 'OK', onPress: () => setIsLoading(false)},
-        ]);
+        console.log('Error', '약이 인식되지 않았습니다. 다시 시도해주세요.');
+        setIsLoading(false);
+        setIsAutoCapturing(true);  // 자동 캡처 다시 활성화
       } finally {
         setIsLoading(false);
       }
     }
   };
+
+  const handleClassificationResult = useCallback((result) => {
+    stopEverything();
+    const message = `감지된 약: ${result.class}`;
+    setRecognizedText(message);
+    speak(message);
+    console.log('약 감지 결과:', message);
+    navigation.navigate('Inform', {
+      medicineName: result.class,
+    });
+  }, [navigation]);
 
   // Render
   function renderHeader() {

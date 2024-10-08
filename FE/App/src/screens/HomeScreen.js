@@ -249,6 +249,38 @@ export default function HomeScreen() {
         console.error('TTS error:', error);
       }
       navigation.navigate('Camera');
+    }
+    else if (userMessage.includes('도움말')) {
+      assistantResponse = '도움말을 켭니다';
+      await stopListening();
+      setMessages(prevMessages => [
+        ...prevMessages,
+        {role: 'assistant', content: assistantResponse},
+      ]);
+      // 대기 시간 추가
+      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        await speak(assistantResponse);
+      } catch (error) {
+        console.error('TTS error:', error);
+      }
+      navigation.navigate('Help');
+    }
+    else if (userMessage.includes('설정')) {
+      assistantResponse = '설정 페이지로 이동합니다';
+      await stopListening();
+      setMessages(prevMessages => [
+        ...prevMessages,
+        {role: 'assistant', content: assistantResponse},
+      ]);
+      // 대기 시간 추가
+      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        await speak(assistantResponse);
+      } catch (error) {
+        console.error('TTS error:', error);
+      }
+      navigation.navigate('Setting');
     } else if (userMessage.includes('일정')) {
       assistantResponse = '일정 관리 페이지로 이동합니다';
       await stopListening();
