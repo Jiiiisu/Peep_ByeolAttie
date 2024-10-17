@@ -31,7 +31,7 @@ import Tts from 'react-native-tts';
 const {CustomMlkitOcrModule} = NativeModules;
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
-const SERVER_URL = 'http://13.124.74.207:5000'; // Unified server URL
+const SERVER_URL = 'http://15.165.194.89:5000'; // Unified server URL
 
 export default function CameraScreen() {
   const navigation = useNavigation();
