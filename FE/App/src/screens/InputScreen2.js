@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -46,7 +46,7 @@ export default function InputScreen2({route}) {
     // 하드웨어 백 버튼 이벤트 처리
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
-      handleGoBack
+      handleGoBack,
     );
 
     if (route.params) {
@@ -72,7 +72,7 @@ export default function InputScreen2({route}) {
       backHandler.remove(); // 이벤트 리스너 제거
     };
   }, [route.params, isVoiceMode, currentStep, handleGoBack]);
-  
+
   const initVoice = async () => {
     try {
       await Voice.destroy();
@@ -96,22 +96,25 @@ export default function InputScreen2({route}) {
     let message = '';
     switch (currentStep) {
       case 'days':
-        message = '어떤 요일에 약을 복용하는지 말씀해 주세요. 예를 들어, 월수금, 일주일';
+        message =
+          '어떤 요일에 약을 복용하는지 말씀해 주세요. 예를 들어, 월수금, 일주일';
         break;
       case 'times':
-        message = '약을 복용하는 시간을 말씀해 주세요. 예를 들어 23시, 저녁 7시';
+        message =
+          '약을 복용하는 시간을 말씀해 주세요. 예를 들어 23시, 저녁 7시';
         break;
       case 'additionalTime':
         message = '예약 시간을 추가하시려면 추가, 없으시면 다음을 말씀해주세요';
         break;
       case 'additionalInfo':
-        message = '추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항, 복용 주기 등';
+        message =
+          '추가로 필요한 정보를 말씀해 주세요. 알레르기 정보나 주의 사항, 복용 주기 등';
         break;
       case 'confirmation':
         message = '저장하시겠습니까? 저장 또는 아니오로 대답해 주세요.';
         break;
     }
-  
+
     try {
       await speak(message);
       setTimeout(() => startListening(), 500); // TTS 종료 후 약간의 지연을 두고 음성 인식 시작
@@ -146,30 +149,33 @@ export default function InputScreen2({route}) {
     }
   };
 
-  const onSpeechError = useCallback(async (e) => {
-    console.error('Speech recognition error:', e);
-    if (e.error.code === '7' || e.error.code === '5') {
-      console.log('No speech input detected. Restarting voice recognition.');
-      ToastAndroid.show(
-        '죄송합니다. 다시 한 번 말씀해 주세요.',
-        ToastAndroid.SHORT,
-      );
-      console.log('No speech results');
-      try {
-        await speak('음성이 인식되지 않았습니다. 다시 말씀해 주세요.');
-        console.log('TTS finished, restarting voice input');
+  const onSpeechError = useCallback(
+    async e => {
+      console.error('Speech recognition error:', e);
+      if (e.error.code === '7' || e.error.code === '5') {
+        console.log('No speech input detected. Restarting voice recognition.');
+        ToastAndroid.show(
+          '죄송합니다. 다시 한 번 말씀해 주세요.',
+          ToastAndroid.SHORT,
+        );
+        console.log('No speech results');
+        try {
+          await speak('음성이 인식되지 않았습니다. 다시 말씀해 주세요.');
+          console.log('TTS finished, restarting voice input');
+          await startVoiceInput();
+        } catch (error) {
+          console.error('Error in speech error handling:', error);
+        }
+      } else {
+        ToastAndroid.show(
+          '음성 인식 중 문제가 발생했습니다. 다시 시도합니다.',
+          ToastAndroid.SHORT,
+        );
         await startVoiceInput();
-      } catch (error) {
-        console.error('Error in speech error handling:', error);
       }
-    } else {
-      ToastAndroid.show(
-        '음성 인식 중 문제가 발생했습니다. 다시 시도합니다.',
-        ToastAndroid.SHORT,
-      );
-      await startVoiceInput();
-    }
-  }, [startVoiceInput]);
+    },
+    [startVoiceInput],
+  );
 
   const handleVoiceInput = input => {
     switch (currentStep) {
@@ -197,7 +203,8 @@ export default function InputScreen2({route}) {
       .split(/[,\s]+/)
       .map(day => day.replace(/요일/g, ''));
 
-    if (recognizedDays.includes('일주일')) { //매일은 발음이 너무 어려움
+    if (recognizedDays.includes('일주일')) {
+      //매일은 발음이 너무 어려움
       setSelectedDays(DAYS);
       console.log('일주일로 설정되었습니다.');
       setCurrentStep('times');
@@ -229,12 +236,54 @@ export default function InputScreen2({route}) {
 
     const koreanToArabic = koreanNumber => {
       const koreanNumbers = {
-        일: 1, 이: 2, 삼: 3, 사: 4, 오: 5, 육: 6, 칠: 7, 팔: 8, 구: 9, 십: 10,
-        십일: 11, 십이: 12, 십삼: 13, 십사: 14, 십오: 15, 십육: 16, 십칠: 17, 십팔: 18, 십구: 19,
-        이십: 20, 이십일: 21, 이십이: 22, 이십삼: 23, 이십사: 24,
-        한: 1, 두: 2, 세: 3, 네: 4, 다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9,
-        열: 10, 열한: 11, 열두: 12, 열세: 13, 열네: 14, 열다섯: 15, 열여섯: 16, 열일곱: 17, 열여덟: 18, 열아홉: 19,
-        스물: 20, 스물한: 21, 스물두: 22, 스물세: 23, 스물네: 24,
+        일: 1,
+        이: 2,
+        삼: 3,
+        사: 4,
+        오: 5,
+        육: 6,
+        칠: 7,
+        팔: 8,
+        구: 9,
+        십: 10,
+        십일: 11,
+        십이: 12,
+        십삼: 13,
+        십사: 14,
+        십오: 15,
+        십육: 16,
+        십칠: 17,
+        십팔: 18,
+        십구: 19,
+        이십: 20,
+        이십일: 21,
+        이십이: 22,
+        이십삼: 23,
+        이십사: 24,
+        한: 1,
+        두: 2,
+        세: 3,
+        네: 4,
+        다섯: 5,
+        여섯: 6,
+        일곱: 7,
+        여덟: 8,
+        아홉: 9,
+        열: 10,
+        열한: 11,
+        열두: 12,
+        열세: 13,
+        열네: 14,
+        열다섯: 15,
+        열여섯: 16,
+        열일곱: 17,
+        열여덟: 18,
+        열아홉: 19,
+        스물: 20,
+        스물한: 21,
+        스물두: 22,
+        스물세: 23,
+        스물네: 24,
       };
       return koreanNumbers[koreanNumber] || parseInt(koreanNumber);
     };
@@ -259,7 +308,9 @@ export default function InputScreen2({route}) {
         return timeKeywords[phrase];
       }
 
-      const match = phrase.match(/^(아침|점심|저녁|오전|오후|밤|새벽)?\s*(\d{1,2}|[일이삼사오육칠팔구십]+)시\s*(반|(\d{1,2}|[일이삼사오육칠팔구십]+)\s*분?)?$/);
+      const match = phrase.match(
+        /^(아침|점심|저녁|오전|오후|밤|새벽)?\s*(\d{1,2}|[일이삼사오육칠팔구십]+)시\s*(반|(\d{1,2}|[일이삼사오육칠팔구십]+)\s*분?)?$/,
+      );
       if (match) {
         const [_, period, hours, minutesPart] = match;
         let processedMinutes = 0;
@@ -267,12 +318,14 @@ export default function InputScreen2({route}) {
           if (minutesPart === '반') {
             processedMinutes = 30;
           } else {
-            processedMinutes = koreanToArabic(minutesPart.replace(/\s*분?$/, ''));
+            processedMinutes = koreanToArabic(
+              minutesPart.replace(/\s*분?$/, ''),
+            );
           }
         }
         return convertTime(hours, processedMinutes, period);
       }
-  
+
       return null;
     };
 
@@ -282,9 +335,12 @@ export default function InputScreen2({route}) {
       }
       return null;
     };
-  
-    const times = input.toLowerCase().split(/[,]+/).map(t => t.trim());
-  
+
+    const times = input
+      .toLowerCase()
+      .split(/[,]+/)
+      .map(t => t.trim());
+
     const convertedTimes = times.flatMap(phrase => {
       const time = processTimePhrase(phrase);
       return time ? [time] : [];
@@ -393,7 +449,7 @@ export default function InputScreen2({route}) {
         resetInputs: true,
         name: '',
         dosage: '',
-        isVoiceMode: true
+        isVoiceMode: true,
       });
       //navigation.navigate('Schedule');
     } catch (error) {
@@ -540,7 +596,7 @@ export default function InputScreen2({route}) {
   const minutes = Array.from({length: 60}, (_, i) =>
     i.toString().padStart(2, '0'),
   );
-  
+
   // 뒤로 가기 버튼 처리 (기존 함수를 수정)
   const handleGoBack = useCallback(() => {
     navigation.navigate('Input1', {
@@ -708,7 +764,9 @@ export default function InputScreen2({route}) {
                 : 'bg-orange-default dark:bg-orange-600'
             }`}
             onPress={handleSave}
-            disabled={times.length === 0 || selectedDays.length === 0}
+            disabled={
+              times.length === 0 || selectedDays.length === 0 || isVoiceMode
+            }
             accessibilityOrder={1}
             accessible={true}
             accessibilityLabel="저장"

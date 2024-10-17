@@ -44,7 +44,11 @@ const CustomDrawerContent = props => {
           isDark ? 'bg-gray-700' : 'bg-gray-100'
         }`}
         onPress={() => props.navigation.navigate('Schedule')}>
-        <Icon name="schedule" size={24} color={isDark ? '#fff' : '#000'} />
+        <Icon
+          name="notifications-active"
+          size={24}
+          color={isDark ? '#fff' : '#000'}
+        />
         <Text
           className={`text-[24px] font-Regular ml-4 ${
             isDark ? 'text-white' : 'text-black'
@@ -57,7 +61,7 @@ const CustomDrawerContent = props => {
           isDark ? 'bg-gray-700' : 'bg-gray-100'
         }`}
         onPress={() => props.navigation.navigate('Camera')}>
-        <Icon name="camera" size={24} color={isDark ? '#fff' : '#000'} />
+        <Icon name="camera-alt" size={24} color={isDark ? '#fff' : '#000'} />
         <Text
           className={`text-[24px] font-Regular ml-4 ${
             isDark ? 'text-white' : 'text-black'

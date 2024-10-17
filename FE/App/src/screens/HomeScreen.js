@@ -109,6 +109,7 @@ export default function HomeScreen() {
       initVoice,
       startListening,
       messages,
+      requestPermissions,
     ]),
   );
 
@@ -373,10 +374,16 @@ export default function HomeScreen() {
             className="items-center justify-around"
             style={{height: hp(80)}}>
             <View className="rounded-lg w-full h-32 mt-2 items-center justify-center bg-default-2 dark:bg-slate-800">
-              <Text className="text-gray-800 dark:text-gray-200 text-[24px] font-Regular text-center mb-1">
+              <Text
+                className="text-gray-800 dark:text-gray-200 text-[24px] font-Regular text-center mb-1"
+                accessible={false}
+                importantForAccessibility="no">
                 환영합니다
               </Text>
-              <Text className="text-gray-800 dark:text-gray-200 text-[24px] font-Regular text-center">
+              <Text
+                className="text-gray-800 dark:text-gray-200 text-[24px] font-Regular text-center"
+                accessible={false}
+                importantForAccessibility="no">
                 아래의 버튼을 눌러 시작해보세요!
               </Text>
             </View>
@@ -384,6 +391,8 @@ export default function HomeScreen() {
               source={require('../../assets/images/Peep(2-1).png')}
               style={{width: wp(60), height: hp(40)}}
               resizeMode="contain"
+              accessible={false}
+              importantForAccessibility="no"
             />
             <View style={{height: hp(10)}} />
           </View>
@@ -402,7 +411,9 @@ export default function HomeScreen() {
           disabled={isSpeaking}
           accessibilityLabel={recording ? '음성 명령 중지' : '음성 명령 시작'}
           accessibilityHint={
-            recording ? '음성 명령을 중지합니다.' : '음성 명령을 시작합니다.'
+            recording
+              ? '활성화하여 음성 명령을 중지합니다.'
+              : '활성화하여 음성 명령을 시작합니다.'
           }>
           {recording ? (
             colorScheme === 'dark' ? (

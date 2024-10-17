@@ -51,7 +51,7 @@ export default function InputScreen({route}) {
         Voice.destroy().then(Voice.removeAllListeners);
         stopSpeech();
       };
-    }, [route.params, stopSpeech ])
+    }, [route.params, stopSpeech]),
   );
 
   useEffect(() => {
@@ -205,6 +205,7 @@ export default function InputScreen({route}) {
         둘: 2,
         두: 2,
         무: 2,
+        부: 2,
         셋: 3,
         세: 3,
         넷: 4,
@@ -233,7 +234,7 @@ export default function InputScreen({route}) {
     );
 
     // '개','계', '게', '알' 앞의 숫자만 남김. 발음이 계,게 로 인식될 수도 있기 때문
-    dosage = dosage.replace(/개|계|게|알/g, ''); // 개, 알 모두 '알'로 처리 or 필터링 ''
+    dosage = dosage.replace(/개|계|게|알|활/g, ''); // 개, 알 모두 '알'로 처리 or 필터링 ''
     console.log('변환된 dosage: ', dosage);
 
     if (dosage.length > 0) {
@@ -398,7 +399,7 @@ export default function InputScreen({route}) {
                 : 'bg-orange-default dark:bg-orange-600'
             }`}
             onPress={handleNext}
-            disabled={!name || !dosage}
+            disabled={!name || !dosage || isVoiceMode}
             accessibilityOrder={1}
             accessible={true}
             accessibilityLabel="다음"

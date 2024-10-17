@@ -8,10 +8,11 @@ import {
 import {request, PERMISSIONS, RESULTS, check} from 'react-native-permissions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useSpeech} from '../constants/SpeechContext';
+import Tts from 'react-native-tts';
 
 export default function WelcomeScreen() {
   const navigation = useNavigation();
-  const {speak} = useSpeech();
+  const {speak, stopSpeech} = useSpeech();
   const onboardingData = [
     {
       image: require('../../assets/images/Onboarding_First.png'),
@@ -41,8 +42,7 @@ export default function WelcomeScreen() {
     },
   ];
 
-  const [currentPage, setCurrentPage] = useState(0);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -79,9 +79,8 @@ export default function WelcomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setCurrentPage(0);
       startSpeak(0);
-    }, []),
+    }, [currentPage]),
   );
 
   const fadeOut = () => {
@@ -103,30 +102,27 @@ export default function WelcomeScreen() {
   const startSpeak = async page => {
     if (page < 1) {
       const fullText = `${onboardingData[page].title} ${onboardingData[page].description}`;
-      setIsSpeaking(true);
-      await speak(fullText);
+      speak(fullText);
     } else {
       const fullText = `${onboardingData[page].description}`;
-      setIsSpeaking(true);
-      await speak(fullText);
+      speak(fullText);
     }
-    setIsSpeaking(false);
   };
 
   const handleNext = () => {
-    if (!isSpeaking) {
-      if (currentPage < onboardingData.length - 1) {
-        fadeOut();
-        setTimeout(() => {
-          setCurrentPage(currentPage + 1);
-          fadeIn();
-        }, 300);
-        startSpeak(currentPage + 1);
-      } else {
-        requestPermissions();
-        AsyncStorage.setItem('alreadyLaunched', 'true');
-        navigation.navigate('Home');
-      }
+    stopSpeech();
+    if (currentPage < onboardingData.length - 1) {
+      fadeOut();
+      setTimeout(() => {
+        setCurrentPage(currentPage + 1);
+        fadeIn();
+      }, 300);
+      startSpeak(currentPage + 1);
+    } else {
+      requestPermissions();
+      AsyncStorage.setItem('alreadyLaunched', 'true');
+      navigation.navigate('Home');
+      setCurrentPage(0);
     }
   };
 
@@ -180,12 +176,9 @@ export default function WelcomeScreen() {
       </View>
 
       <TouchableOpacity
-        className={`bg-orange-default dark:bg-orange-600 p-4 mb-8 rounded-xl ${
-          isSpeaking ? 'opacity-50' : ''
-        }`}
+        className="bg-orange-default dark:bg-orange-600 p-4 mb-8 rounded-xl"
         onPress={handleNext}
         activeOpacity={0.7}
-        disabled={isSpeaking}
         accessibilityLabel={
           currentPage === onboardingData.length - 1 ? '시작하기' : '다음'
         }
