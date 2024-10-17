@@ -15,7 +15,6 @@ import {useNavigation} from '@react-navigation/native';
 import PushNotification from 'react-native-push-notification';
 import Voice from '@react-native-voice/voice';
 import hashSum from 'hash-sum';
-import {speak, cleanupAndNavigate } from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import TimePicker from '../components/TimePicker';
 import {useTheme} from '../constants/ThemeContext';
@@ -115,7 +114,6 @@ export default function InputScreen2({route}) {
   
     try {
       await speak(message);
-      console.log('TTS finished, starting listening');
       setTimeout(() => startListening(), 500); // TTS 종료 후 약간의 지연을 두고 음성 인식 시작
     } catch (error) {
       console.error('Error in startVoiceInput:', error);
