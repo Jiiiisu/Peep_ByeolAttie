@@ -20,7 +20,7 @@ import {
 } from 'react-native-responsive-screen';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {Shadow} from 'react-native-shadow-2';
-import { useSpeech } from '../constants/SpeechContext'; // speak함수 import
+import {useSpeech} from '../constants/SpeechContext'; // speak함수 import
 import RNFS from 'react-native-fs'; // react-native-fs 임포트
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useTheme} from '../constants/ThemeContext';
@@ -31,6 +31,8 @@ import Tts from 'react-native-tts';
 const {CustomMlkitOcrModule} = NativeModules;
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
+const SERVER_URL = 'http://192.168.219.104:5000'; // Unified server URL
+
 export default function CameraScreen() {
   const navigation = useNavigation();
   const {colorScheme} = useTheme();
@@ -39,7 +41,7 @@ export default function CameraScreen() {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
   });
-  const { speak, stopSpeech } = useSpeech();
+  const {speak, stopSpeech} = useSpeech();
 
   useEffect(() => {
     console.log('Current cameraViewSize:', cameraViewSize);
@@ -101,7 +103,7 @@ export default function CameraScreen() {
         setIsCameraActive(false);
         stopEverything();
       };
-    }, [stopEverything])
+    }, [stopEverything]),
   );
 
   const stopEverything = useCallback(() => {
@@ -150,8 +152,7 @@ export default function CameraScreen() {
     });
 
     try {
-      //'http://192.168.45.44:5000/detect'
-      const response = await fetch('http:///192.168.219.100:5000/detect', {
+      const response = await fetch(`${SERVER_URL}/detect`, {
         method: 'POST',
         body: formData,
         headers: {
@@ -159,22 +160,22 @@ export default function CameraScreen() {
         },
       });
 
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current) {
+        return null;
+      }
 
       const result = await response.json();
       console.log('Server response:', result.result);
       setServerResponse(result.result);
 
       if (!result.result) {
-        //setIsSpeaking(true);
         await speak('약물 인식이 불가능합니다.');
-        //setIsSpeaking(false);
       } else {
-        //setIsSpeaking(true);
         await speak('약물 인식을 하고 있습니다.');
-        setDetections(result.detections); // 여기를 수정했습니다.
-        //setIsSpeaking(false);
+        setDetections(result.detections);
       }
+
+      return result;
     } catch (error) {
       console.error('Error sending image to server:', error);
     } finally {
@@ -240,7 +241,7 @@ export default function CameraScreen() {
 
     try {
       //const response = await fetch('http://13.124.74.207:5000/predict', {
-      const response = await fetch('http:///192.168.219.100:5000/detect', {
+      const response = await fetch(`${SERVER_URL}/predict`, {
         method: 'POST',
         body: formData,
         headers: {
@@ -272,7 +273,6 @@ export default function CameraScreen() {
           flash: 'off',
         });
 
-        //console.log('Photo taken:', photo);
         ////////////////////////////////////////////////////////////////////
         const detectionResult = await sendImageToServer(photo.path);
 
@@ -280,8 +280,7 @@ export default function CameraScreen() {
           // 약이 감지되면 사진을 저장하고 분류 서버로 전송
           setIsDetected(true);
           stopEverything();
-          setIsAutoCapturing(false);  // 수동 촬영 시 자동 촬영 중지
-          //setIsLoading(true);
+          setIsAutoCapturing(false); // true일 때 자동 촬영 중지
 
           const destinationPath = `${
             RNFS.DocumentDirectoryPath
@@ -289,9 +288,9 @@ export default function CameraScreen() {
           await RNFS.moveFile(photo.path, destinationPath);
           setImageData(destinationPath);
 
-          //console.log('사진 저장됨:', destinationPath);
-
-          const classificationResult = await sendImageToClassificationServer(destinationPath);
+          const classificationResult = await sendImageToClassificationServer(
+            destinationPath,
+          );
           if (classificationResult) {
             handleClassificationResult(classificationResult);
           }
@@ -304,7 +303,15 @@ export default function CameraScreen() {
         setIsLoading(false);
       }
     }
-  }, [camera, isDetected, isAutoCapturing, sendImageToServer, sendImageToClassificationServer, stopEverything, handleClassificationResult]);
+  }, [
+    camera,
+    isDetected,
+    isAutoCapturing,
+    sendImageToServer,
+    sendImageToClassificationServer,
+    stopEverything,
+    handleClassificationResult,
+  ]);
 
   useEffect(() => {
     let intervalId;
@@ -331,69 +338,94 @@ export default function CameraScreen() {
     return cleanedLines.filter(line => line.length > 0).join('\n');
   };
 
-  const processFrame = useCallback(async (frame) => {
-    if (!isProcessingEnabled || isDetected || isServerProcessing || isSpeaking) return;
-
-    const currentTime = Date.now();
-    if (currentTime - lastProcessedTime.current < 3000) {
-      // 3초마다 처리
-      return;
-    }
-    
-    // TTS가 시작된 지 7초가 지나지 않았다면 새로운 인식을 하지 않음
-    if (ttsStartTimeRef.current && currentTime - ttsStartTimeRef.current < 7000) {
-      return;
-    }
-
-    try {
-      lastProcessedTime.current = currentTime;
-
-      const photo = await camera.current.takePhoto({
-        qualityPrioritization: 'quality', //빠른 속도를 위해 quality에서 speed로 수정. 'speed'와 'quality' 사이의 균형을 원하면 balanced로 수정
-        flash: 'off', //off나 auto로 설정. 플래시 작동한 뒤에 초점 나가는 현장 있음
-        enableAutoStabilization: true,
-      });
-
-      const tempFilePath = `${
-        RNFS.CachesDirectoryPath
-      }/temp_frame_${Date.now()}.jpg`;
-      await RNFS.moveFile(photo.path, tempFilePath);
-
-      console.log('Starting custom OCR detection');
-      const customResult = await CustomMlkitOcrModule.recognizeText(
-        tempFilePath,
-      );
-      console.log('Custom OCR result:', customResult.text);
-
-      const cleanedText = cleanRecognizedText(customResult.text);
-
-      // 인식된 텍스트를 음성으로 출력
-      if (cleanedText && cleanedText !== 'No text recognized' && cleanedText !== lastSpokenText.current) {
-        lastSpokenText.current = cleanedText;
-        setRecognizedText(cleanedText || 'No text recognized'); // 화면에 표시할 텍스트 업데이트
-
-        if (!isDetected && !isServerProcessing) {  // 약물이 감지되지 않았을 때만 TTS 실행
-          setIsSpeaking(true);
-          setIsProcessingEnabled(false);;
-          ttsStartTimeRef.current = Date.now(); // TTS 시작 시간 기록
-
-          await stopSpeech();
-          speak(cleanedText);  // 여기에 cleanedText를 인자로 전달
-
-          // 7초 후에 TTS 상태 초기화
-          ttsTimeoutRef.current = setTimeout(() => {
-            setIsSpeaking(false);
-            setIsProcessingEnabled(true);
-            lastSpokenText.current = '';
-            ttsStartTimeRef.current = null; // TTS 시작 시간 초기화
-          }, 7000);
-        }
+  const processFrame = useCallback(
+    async frame => {
+      if (
+        !isProcessingEnabled ||
+        isDetected ||
+        isServerProcessing ||
+        isSpeaking
+      ) {
+        return;
       }
-    } catch (error) {
-      console.error('OCR Error:', error);
-      setRecognizedText('OCR Error occurred');
-    }
-  }, [isProcessingEnabled, isDetected, isServerProcessing, isSpeaking, speak, stopSpeech]);
+
+      const currentTime = Date.now();
+      if (currentTime - lastProcessedTime.current < 3000) {
+        // 3초마다 처리
+        return;
+      }
+
+      // TTS가 시작된 지 7초가 지나지 않았다면 새로운 인식을 하지 않음
+      if (
+        ttsStartTimeRef.current &&
+        currentTime - ttsStartTimeRef.current < 7000
+      ) {
+        return;
+      }
+
+      try {
+        lastProcessedTime.current = currentTime;
+
+        const photo = await camera.current.takePhoto({
+          qualityPrioritization: 'quality', //빠른 속도를 위해 quality에서 speed로 수정. 'speed'와 'quality' 사이의 균형을 원하면 balanced로 수정
+          flash: 'off', //off나 auto로 설정. 플래시 작동한 뒤에 초점 나가는 현장 있음
+          enableAutoStabilization: true,
+        });
+
+        const tempFilePath = `${
+          RNFS.CachesDirectoryPath
+        }/temp_frame_${Date.now()}.jpg`;
+        await RNFS.moveFile(photo.path, tempFilePath);
+
+        console.log('Starting custom OCR detection');
+        const customResult = await CustomMlkitOcrModule.recognizeText(
+          tempFilePath,
+        );
+        console.log('Custom OCR result:', customResult.text);
+
+        const cleanedText = cleanRecognizedText(customResult.text);
+
+        // 인식된 텍스트를 음성으로 출력
+        if (
+          cleanedText &&
+          cleanedText !== 'No text recognized' &&
+          cleanedText !== lastSpokenText.current
+        ) {
+          lastSpokenText.current = cleanedText;
+          setRecognizedText(cleanedText || 'No text recognized'); // 화면에 표시할 텍스트 업데이트
+
+          if (!isDetected && !isServerProcessing) {
+            // 약물이 감지되지 않았을 때만 TTS 실행
+            setIsSpeaking(true);
+            setIsProcessingEnabled(false);
+            ttsStartTimeRef.current = Date.now(); // TTS 시작 시간 기록
+
+            await stopSpeech();
+            speak(cleanedText); // 여기에 cleanedText를 인자로 전달
+
+            // 7초 후에 TTS 상태 초기화
+            ttsTimeoutRef.current = setTimeout(() => {
+              setIsSpeaking(false);
+              setIsProcessingEnabled(true);
+              lastSpokenText.current = '';
+              ttsStartTimeRef.current = null; // TTS 시작 시간 초기화
+            }, 7000);
+          }
+        }
+      } catch (error) {
+        console.error('OCR Error:', error);
+        setRecognizedText('OCR Error occurred');
+      }
+    },
+    [
+      isProcessingEnabled,
+      isDetected,
+      isServerProcessing,
+      isSpeaking,
+      speak,
+      stopSpeech,
+    ],
+  );
 
   useEffect(() => {
     console.log('Recognized Text:', recognizedText);
@@ -416,12 +448,14 @@ export default function CameraScreen() {
       setIsServerProcessing(true);
       setIsProcessingEnabled(false); // Disable frame processing
       stopEverything();
-      setIsAutoCapturing(false);  // 수동 촬영 시 자동 촬영 중지
+      setIsAutoCapturing(false); // 수동 촬영 시 자동 촬영 중지
       setIsLoading(true);
       try {
         const photo = await camera.current.takePhoto();
         const imagePath = photo.path;
-        const destinationPath = `${RNFS.DocumentDirectoryPath}/images/photo_${Date.now()}.png`;
+        const destinationPath = `${
+          RNFS.DocumentDirectoryPath
+        }/images/photo_${Date.now()}.png`;
         const dirPath = `${RNFS.DocumentDirectoryPath}/images`;
         if (!(await RNFS.exists(dirPath))) {
           await RNFS.mkdir(dirPath);
@@ -430,10 +464,12 @@ export default function CameraScreen() {
         setImageData(destinationPath);
         setTakePhotoClicked(false);
         console.log('사진 저장됨:', destinationPath);
-        
+
         const detectionResult = await sendImageToServer(destinationPath);
         if (detectionResult && detectionResult.result) {
-          const classificationResult = await sendImageToClassificationServer(destinationPath);
+          const classificationResult = await sendImageToClassificationServer(
+            destinationPath,
+          );
           if (classificationResult) {
             handleClassificationResult(classificationResult);
           } else {
@@ -458,16 +494,19 @@ export default function CameraScreen() {
     }
   };
 
-  const handleClassificationResult = useCallback((result) => {
-    stopEverything();
-    const message = `감지된 약: ${result.class}`;
-    setRecognizedText(message);
-    speak(message);
-    console.log('약 감지 결과:', message);
-    navigation.navigate('Inform', {
-      medicineName: result.class,
-    });
-  }, [navigation]);
+  const handleClassificationResult = useCallback(
+    result => {
+      stopEverything();
+      const message = `감지된 약: ${result.class}`;
+      setRecognizedText(message);
+      speak(message);
+      console.log('약 감지 결과:', message);
+      navigation.navigate('Inform', {
+        medicineName: result.class,
+      });
+    },
+    [navigation],
+  );
 
   // Render
   function renderHeader() {
