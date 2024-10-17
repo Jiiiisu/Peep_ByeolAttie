@@ -90,6 +90,12 @@ export default function HomeScreen() {
 
       BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
+      const setup = async () => {
+        await initVoice();
+        await requestPermissions();
+      };
+      setup();
+
       return () => {
         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
         // 화면에서 벗어날 때 정리 작업
@@ -114,19 +120,6 @@ export default function HomeScreen() {
     resetVoiceState();
   }, [resetVoiceState]);
 
-  useEffect(() => {
-    const setup = async () => {
-      await initVoice();
-      await requestPermissions();
-    };
-    setup();
-
-    return () => {
-      Voice.destroy().then(Voice.removeAllListeners);
-      stopSpeech();
-    };
-  }, [initVoice, stopSpeech]);
-
   const requestPermissions = async () => {
     const permissions = [
       PERMISSIONS.ANDROID.CAMERA,
@@ -143,7 +136,6 @@ export default function HomeScreen() {
     try {
       for (const permission of permissions) {
         const status = await check(permission);
-        console.log(`${permission} status: ${status}`);
 
         if (status !== RESULTS.GRANTED) {
           await request(permission);
@@ -234,8 +226,7 @@ export default function HomeScreen() {
         console.error('TTS error:', error);
       }
       navigation.navigate('Camera');
-    }
-    else if (userMessage.includes('도움말')) {
+    } else if (userMessage.includes('도움말')) {
       assistantResponse = '도움말을 켭니다';
       await stopListening();
       setMessages(prevMessages => [
@@ -250,8 +241,7 @@ export default function HomeScreen() {
         console.error('TTS error:', error);
       }
       navigation.navigate('Help');
-    }
-    else if (userMessage.includes('설정')) {
+    } else if (userMessage.includes('설정')) {
       assistantResponse = '설정 페이지로 이동합니다';
       await stopListening();
       setMessages(prevMessages => [
