@@ -400,13 +400,9 @@ export default function HomeScreen() {
           className="self-center"
           onPress={recording ? stopListening : startListening}
           disabled={isSpeaking}
-          accessibilityLabel={
-            recording ? '보이스 모드 중지' : '보이스 모드 시작'
-          }
+          accessibilityLabel={recording ? '음성 명령 중지' : '음성 명령 시작'}
           accessibilityHint={
-            recording
-              ? '보이스 모드를 중지합니다.'
-              : '보이스 모드를 시작합니다.'
+            recording ? '음성 명령을 중지합니다.' : '음성 명령을 시작합니다.'
           }>
           {recording ? (
             colorScheme === 'dark' ? (
