@@ -22,7 +22,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Logo from '../../assets/images/Logo.svg';
 import {useTheme} from '../constants/ThemeContext';
-import Tts from 'react-native-tts';
+import {useSpeech} from '../constants/SpeechContext';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -30,6 +30,7 @@ export default function ScheduleScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const {colorScheme, toggleTheme} = useTheme();
+  const {speak, stopSpeech} = useSpeech();
 
   const [drugList, setDrugList] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -51,21 +52,21 @@ export default function ScheduleScreen() {
       // stopTTS 파라미터 확인
       if (route.params?.stopTTS) {
         // TTS 중지 및 파라미터 제거
-        Tts.stop();
+        stopSpeech();
         navigation.setParams({ stopTTS: undefined });
       } else {
         setTimeout(() => {
           if (route.params?.startVoiceHandler) {
-            handleScheduleVoice(navigation, () => {});
+            handleScheduleVoice(navigation, () => {}, speak, stopSpeech); // 수정
           } else {
-            handleScheduleVoice(navigation, () => {}, false);
+            handleScheduleVoice(navigation, () => {}, speak, stopSpeech, false); // 수정
           }
         }, 1000);
       }
     });
 
     return unsubscribe;
-  }, [navigation, route.params]);
+  }, [navigation, route.params, speak, stopSpeech]); // 의존성 배열 수정
 
   const fetchDrugList = async () => {
     try {

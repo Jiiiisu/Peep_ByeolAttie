@@ -20,7 +20,7 @@ import {
 } from 'react-native-responsive-screen';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {Shadow} from 'react-native-shadow-2';
-import {speak} from './ScheduleVoiceHandler'; // speak함수 import
+import { useSpeech } from '../constants/SpeechContext'; // speak함수 import
 import RNFS from 'react-native-fs'; // react-native-fs 임포트
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useTheme} from '../constants/ThemeContext';
@@ -39,6 +39,7 @@ export default function CameraScreen() {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
   });
+  const { speak, stopSpeech } = useSpeech();
 
   useEffect(() => {
     console.log('Current cameraViewSize:', cameraViewSize);
@@ -52,7 +53,6 @@ export default function CameraScreen() {
   const [recognizedText, setRecognizedText] = useState('');
   const lastProcessedTime = useRef(0);
   const [serverResponse, setServerResponse] = useState(null);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const lastSpokenText = useRef('');
   const ttsTimeoutRef = useRef(null);
   const ttsStartTimeRef = useRef(null);
@@ -66,6 +66,8 @@ export default function CameraScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAutoCapturing, setIsAutoCapturing] = useState(true);
   const [isDetected, setIsDetected] = useState(false);
+  const [isServerProcessing, setIsServerProcessing] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', e => {
@@ -78,12 +80,11 @@ export default function CameraScreen() {
       } else {
         // 카메라 화면에서 뒤로가기
         stopEverything();
-        navigation.goBack();
       }
     });
 
     return unsubscribe;
-  }, [navigation, takePhotoClicked]);
+  }, [navigation, takePhotoClicked, stopEverything]);
 
   useFocusEffect(
     useCallback(() => {
@@ -104,7 +105,7 @@ export default function CameraScreen() {
   );
 
   const stopEverything = useCallback(() => {
-    Tts.stop();
+    stopSpeech();
     setIsSpeaking(false);
     setIsProcessingEnabled(false);
     if (ttsTimeoutRef.current) {
@@ -113,7 +114,7 @@ export default function CameraScreen() {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-  }, []);
+  }, [stopSpeech]);
 
   // Handler
   const requestCameraPermission = React.useCallback(async () => {
@@ -135,6 +136,8 @@ export default function CameraScreen() {
 
   // Send image to detect server
   const sendImageToServer = async imagePath => {
+    setIsServerProcessing(true);
+    setIsProcessingEnabled(false); // Disable frame processing
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -148,7 +151,7 @@ export default function CameraScreen() {
 
     try {
       //'http://192.168.45.44:5000/detect'
-      const response = await fetch('http:///13.124.74.207:5000/detect', {
+      const response = await fetch('http:///192.168.219.100:5000/detect', {
         method: 'POST',
         body: formData,
         headers: {
@@ -163,13 +166,20 @@ export default function CameraScreen() {
       setServerResponse(result.result);
 
       if (!result.result) {
+        //setIsSpeaking(true);
         await speak('약물 인식이 불가능합니다.');
+        //setIsSpeaking(false);
       } else {
+        //setIsSpeaking(true);
         await speak('약물 인식을 하고 있습니다.');
         setDetections(result.detections); // 여기를 수정했습니다.
+        //setIsSpeaking(false);
       }
     } catch (error) {
       console.error('Error sending image to server:', error);
+    } finally {
+      setIsServerProcessing(false);
+      setIsProcessingEnabled(true); // Re-enable frame processing
     }
   };
 
@@ -229,7 +239,8 @@ export default function CameraScreen() {
     });
 
     try {
-      const response = await fetch('http://13.124.74.207:5000/predict', {
+      //const response = await fetch('http://13.124.74.207:5000/predict', {
+      const response = await fetch('http:///192.168.219.100:5000/detect', {
         method: 'POST',
         body: formData,
         headers: {
@@ -251,6 +262,11 @@ export default function CameraScreen() {
   const captureAndSendImage = useCallback(async () => {
     if (camera.current && !isDetected && isAutoCapturing) {
       try {
+        setIsServerProcessing(true);
+        setIsProcessingEnabled(false); // Disable frame processing
+        stopSpeech(); // Stop any ongoing TTS
+        setIsSpeaking(false);
+
         const photo = await camera.current.takePhoto({
           qualityPrioritization: 'speed',
           flash: 'off',
@@ -265,7 +281,7 @@ export default function CameraScreen() {
           setIsDetected(true);
           stopEverything();
           setIsAutoCapturing(false);  // 수동 촬영 시 자동 촬영 중지
-          setIsLoading(true);
+          //setIsLoading(true);
 
           const destinationPath = `${
             RNFS.DocumentDirectoryPath
@@ -283,10 +299,12 @@ export default function CameraScreen() {
       } catch (error) {
         console.error('Error capturing or sending image:', error);
       } finally {
+        setIsServerProcessing(false);
+        setIsProcessingEnabled(true); // Re-enable frame processing
         setIsLoading(false);
       }
     }
-  }, [camera, isDetected, isAutoCapturing, sendImageToServer, sendImageToClassificationServer]);
+  }, [camera, isDetected, isAutoCapturing, sendImageToServer, sendImageToClassificationServer, stopEverything, handleClassificationResult]);
 
   useEffect(() => {
     let intervalId;
@@ -314,13 +332,20 @@ export default function CameraScreen() {
   };
 
   const processFrame = useCallback(async (frame) => {
-    if (!isProcessingEnabled || isDetected) return;
+    if (!isProcessingEnabled || isDetected || isServerProcessing || isSpeaking) return;
+
+    const currentTime = Date.now();
+    if (currentTime - lastProcessedTime.current < 3000) {
+      // 3초마다 처리
+      return;
+    }
+    
+    // TTS가 시작된 지 7초가 지나지 않았다면 새로운 인식을 하지 않음
+    if (ttsStartTimeRef.current && currentTime - ttsStartTimeRef.current < 7000) {
+      return;
+    }
+
     try {
-      const currentTime = Date.now();
-      if (currentTime - lastProcessedTime.current < 3000) {
-        // 3초마다 처리
-        return;
-      }
       lastProcessedTime.current = currentTime;
 
       const photo = await camera.current.takePhoto({
@@ -341,26 +366,26 @@ export default function CameraScreen() {
       console.log('Custom OCR result:', customResult.text);
 
       const cleanedText = cleanRecognizedText(customResult.text);
-      //setRecognizedText(cleanedText || 'No text recognized');
 
       // 인식된 텍스트를 음성으로 출력
       if (cleanedText && cleanedText !== 'No text recognized' && cleanedText !== lastSpokenText.current) {
         lastSpokenText.current = cleanedText;
         setRecognizedText(cleanedText || 'No text recognized'); // 화면에 표시할 텍스트 업데이트
 
-        if (!isDetected) {  // 약물이 감지되지 않았을 때만 TTS 실행
+        if (!isDetected && !isServerProcessing) {  // 약물이 감지되지 않았을 때만 TTS 실행
           setIsSpeaking(true);
-          setIsProcessingEnabled(false);
+          setIsProcessingEnabled(false);;
           ttsStartTimeRef.current = Date.now(); // TTS 시작 시간 기록
 
-          Tts.stop();
-          Tts.speak(cleanedText);
+          await stopSpeech();
+          speak(cleanedText);  // 여기에 cleanedText를 인자로 전달
 
           // 7초 후에 TTS 상태 초기화
           ttsTimeoutRef.current = setTimeout(() => {
             setIsSpeaking(false);
             setIsProcessingEnabled(true);
             lastSpokenText.current = '';
+            ttsStartTimeRef.current = null; // TTS 시작 시간 초기화
           }, 7000);
         }
       }
@@ -368,7 +393,7 @@ export default function CameraScreen() {
       console.error('OCR Error:', error);
       setRecognizedText('OCR Error occurred');
     }
-  }, [isProcessingEnabled, isDetected]);
+  }, [isProcessingEnabled, isDetected, isServerProcessing, isSpeaking, speak, stopSpeech]);
 
   useEffect(() => {
     console.log('Recognized Text:', recognizedText);
@@ -388,6 +413,8 @@ export default function CameraScreen() {
 
   const takePicture = async () => {
     if (camera.current) {
+      setIsServerProcessing(true);
+      setIsProcessingEnabled(false); // Disable frame processing
       stopEverything();
       setIsAutoCapturing(false);  // 수동 촬영 시 자동 촬영 중지
       setIsLoading(true);
@@ -404,18 +431,28 @@ export default function CameraScreen() {
         setTakePhotoClicked(false);
         console.log('사진 저장됨:', destinationPath);
         
-        const classificationResult = await sendImageToClassificationServer(destinationPath);
-        if (classificationResult) {
-          handleClassificationResult(classificationResult);
+        const detectionResult = await sendImageToServer(destinationPath);
+        if (detectionResult && detectionResult.result) {
+          const classificationResult = await sendImageToClassificationServer(destinationPath);
+          if (classificationResult) {
+            handleClassificationResult(classificationResult);
+          } else {
+            throw new Error('분류 실패');
+          }
         } else {
-          throw new Error('알약이 감지되지 않음');
+          throw new Error('약이 감지되지 않음');
         }
       } catch (error) {
         console.error('Error in takePicture:', error);
-        console.log('Error', '약이 인식되지 않았습니다. 다시 시도해주세요.');
+        ToastAndroid.show(
+          '약이 인식되지 않았습니다. 다시 시도해주세요.',
+          ToastAndroid.SHORT,
+        );
         setIsLoading(false);
-        setIsAutoCapturing(true);  // 자동 캡처 다시 활성화
+        setIsAutoCapturing(true);
       } finally {
+        setIsServerProcessing(false);
+        setIsProcessingEnabled(true); // Re-enable frame processing
         setIsLoading(false);
       }
     }

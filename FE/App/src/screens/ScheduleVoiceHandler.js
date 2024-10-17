@@ -1,4 +1,3 @@
-import Tts from 'react-native-tts';
 import Voice from '@react-native-voice/voice';
 import {ToastAndroid, Platform} from 'react-native';
 import {CommonActions} from '@react-navigation/native';
@@ -7,27 +6,29 @@ let isListening = false;
 let timeoutId = null;
 let isCancelled = false;
 let isVoiceMode = false; // 음성모드 or 텍스트모드 상태 변수
-let isSpeaking = false; //TTS가 말하고 있는지 추적하는 변수
 
 export const cleanupAndNavigate = (
   navigation,
   resetVoiceState,
   screenName,
   params = {},
+  stopSpeech
 ) => {
   isCancelled = true;
   stopListening();
-  Tts.stop();
+  if (typeof stopSpeech === 'function') {
+    stopSpeech();
+  }
   clearTimeout(timeoutId);
   Voice.destroy().then(Voice.removeAllListeners);
   if (typeof resetVoiceState === 'function') {
-    resetVoiceState(); // HomeScreen에서 전달받은 함수 호출
+    resetVoiceState();
   }
 
   const commonParams = {
     ...params,
     isVoiceMode: params.isVoiceMode || false,
-    resetInputs: true, // 이 플래그를 추가하여 InputScreen1에서 입력값 초기화를 트리거합니다.
+    resetInputs: true,
   };
 
   switch (screenName) {
@@ -61,7 +62,7 @@ export const cleanupAndNavigate = (
   }
 };
 
-export const handleScheduleVoice = async (navigation, resetVoiceState) => {
+export const handleScheduleVoice = async (navigation, resetVoiceState, speak, stopSpeech) => {
   // Voice 모듈 초기화 및 이벤트 리스너 설정
   isCancelled = false;
   let currentStep = 'inputMethod';
@@ -111,13 +112,13 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
         // Input1로 화면 전환
         await cleanupAndNavigate(navigation, resetVoiceState, 'Input1', {
           isVoiceMode,
-        });
+        }, stopSpeech);
         currentStep = 'name';
       } else if (result.includes('텍스트')) {
         isVoiceMode = false; // 텍스트 모드로 설정
         cleanupAndNavigate(navigation, resetVoiceState, 'Input1', {
           isVoiceMode: false,
-        });
+        }, stopSpeech);
       } else if (result.includes('취소')) {
         await speak('알림 설정을 취소합니다');
         // 네비게이션 스택 초기화 및 TTS 중지 플래그 전달
@@ -195,12 +196,7 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
     await speak(
       '음성으로 입력하시려면 음성, 텍스트로 입력하시려면 텍스트, 취소하시려면 취소를 입력하세요',
     );
-    // 음성 출력이 끝난 후 1초 대기 후 음성 인식 시작
     startListening();
-    //if (!isCancelled) timeoutId = setTimeout(startListening, 1000);
-    // Tts.addEventListener('tts-finish', () => {
-    //   if (!isCancelled) timeoutId = setTimeout(startListening, 1000);
-    // });
   };
 
   const startListening = async () => {
@@ -233,12 +229,13 @@ export const handleScheduleVoice = async (navigation, resetVoiceState) => {
     isCancelled = true;
     Voice.destroy().then(Voice.removeAllListeners);
     clearTimeout(timeoutId);
-    Tts.stop();
-    if (typeof resetVoiceState === 'function') {
-      resetVoiceState(); // 컴포넌트 언마운트 시 상태 초기화
+    if (typeof stopSpeech === 'function') {
+      stopSpeech();
     }
-    isVoiceMode = false; // 음성 모드 초기화
-    isVoiceRecognitionEnabled = true; // 컴포넌트 언마운트 시 음성 인식 상태 초기화
+    if (typeof resetVoiceState === 'function') {
+      resetVoiceState();
+    }
+    isVoiceMode = false;
   };
 };
 
@@ -248,9 +245,6 @@ export const stopListening = async () => {
       await Voice.stop();
       isListening = false;
       clearTimeout(timeoutId);
-      if (typeof resetVoiceState === 'function') {
-        resetVoiceState(); // 음성 인식 중지 시 상태 초기화
-      }
     } catch (e) {
       console.error('Failed to stop voice recognition', e);
     }
@@ -320,8 +314,4 @@ export const speak = async text => {
       reject(event);
     });
   });
-};
-
-export const resetVoiceRecognition = () => {
-  isVoiceRecognitionEnabled = true;
 };

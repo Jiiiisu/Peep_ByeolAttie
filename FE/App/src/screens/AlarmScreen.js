@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {speak} from './ScheduleVoiceHandler';
+import { useSpeech } from '../constants/SpeechContext';
 import {useTheme} from '../constants/ThemeContext';
 
 export default function AlarmScreen() {
@@ -16,6 +16,7 @@ export default function AlarmScreen() {
   const route = useRoute();
   const {drugName, dosage, time} = route.params;
   const {colorScheme, toggleTheme} = useTheme();
+  const { speak } = useSpeech();
 
   useEffect(() => {
     startSpeak();

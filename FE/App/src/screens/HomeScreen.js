@@ -14,7 +14,6 @@ import {
 } from 'react-native-responsive-screen';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Voice from '@react-native-voice/voice';
-import Tts from 'react-native-tts';
 import {
   useNavigation,
   useFocusEffect,
@@ -22,12 +21,12 @@ import {
 } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {request, PERMISSIONS, RESULTS, check} from 'react-native-permissions';
-import {initTts, speak} from './ScheduleVoiceHandler';
 import Recording from '../../assets/images/Recording.svg';
 import RecordingDark from '../../assets/images/Recording(Dark).svg';
 import Stop from '../../assets/images/Stop.svg';
 import StopDark from '../../assets/images/Stop(Dark).svg';
 import {useTheme} from '../constants/ThemeContext';
+import {useSpeech} from '../constants/SpeechContext';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -35,18 +34,16 @@ export default function HomeScreen() {
   const [messages, setMessages] = useState([]);
   const [recording, setRecording] = useState(false);
   const [results, setResults] = useState([]);
-  const [assistantResponse, setText] = useState('');
-  const [isTtsSpeaking, setIsTtsSpeaking] = useState(false);
   const voiceInitialized = useRef(false);
   const [cancelledFromSchedule, setCancelledFromSchedule] = useState(false); //'취소' 후 다시 시작할 때의 동작을 위한 상태변수
   const {colorScheme, toggleTheme} = useTheme();
+  const {speak, stopSpeech, isSpeaking} = useSpeech();
 
   const resetVoiceState = useCallback(() => {
     setRecording(false);
-    setIsTtsSpeaking(false);
-    Tts.stop();
+    stopSpeech();
     Voice.stop();
-  }, []);
+  }, [stopSpeech]);
 
   const initVoice = useCallback(async () => {
     try {
@@ -73,11 +70,6 @@ export default function HomeScreen() {
         resetHomeScreen();
         if (cancelledFromSchedule) {
           setCancelledFromSchedule(true);
-          // // 스케줄 취소 후 돌아왔을 때 새로운 음성 인식 세션 시작
-          // setTimeout(() => {
-          //   initVoice();
-          //   startListening();
-          // }, 1000);
         } else {
           setRecording(false); // 취소가 아닌 경우에도 recording 상태 초기화
         }
@@ -100,10 +92,9 @@ export default function HomeScreen() {
 
       return () => {
         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-        //resetVoiceState(); //계속 오류 5,7 발생해서 과부화 걸림
         // 화면에서 벗어날 때 정리 작업
         Voice.destroy().then(Voice.removeAllListeners);
-        Tts.stop();
+        stopSpeech();
       };
     }, [
       route.params,
@@ -127,15 +118,14 @@ export default function HomeScreen() {
     const setup = async () => {
       await initVoice();
       await requestPermissions();
-      await initTts(); //Tts 초기화
     };
     setup();
 
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
-      Tts.stop();
+      stopSpeech();
     };
-  }, [initVoice]);
+  }, [initVoice, stopSpeech]);
 
   const requestPermissions = async () => {
     const permissions = [
@@ -191,7 +181,6 @@ export default function HomeScreen() {
       {role: 'system', content: `Error: ${e.error.message}`},
     ]);
     setRecording(false); // 에러 발생 시 recording 상태 리셋
-    //Alert.alert('Speech Recognition Error', `Error: ${e.error.message}`); //확인창 팝업해서 일일이 클릭해야 해서 제외함
   };
 
   const onSpeechResults = async e => {
@@ -206,14 +195,10 @@ export default function HomeScreen() {
         {role: 'user', content: userMessage},
       ]);
 
-      let assistantResponse;
-
       if (cancelledFromSchedule) {
         // 스케줄 취소 후 돌아온 경우, 모든 명령어를 직접 처리
         setCancelledFromSchedule(false);
         setRecording(true); // 음성 인식 시작 시 recording 상태를 true로 설정
-        //setRecording(false);
-        // 여기에 추가 코드 작성
         await speak('안녕하세요. 무엇을 도와드릴까요?');
         setMessages(prevMessages => [
           ...prevMessages,
@@ -292,20 +277,13 @@ export default function HomeScreen() {
         // 대기 시간 추가
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        Tts.speak(assistantResponse, {
-          iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
-          androidParams: {
-            KEY_PARAM_PAN: -1,
-            KEY_PARAM_VOLUME: 1.0,
-            KEY_PARAM_STREAM: 'STREAM_MUSIC',
-          },
-        });
+        await speak(assistantResponse);
         setTimeout(() => {
           navigation.navigate('Schedule', {startVoiceHandler: true});
         }, 2000);
       } catch (error) {
         console.error('TTS error:', error);
-        navigation.navigate('Schedule', {startVoiceHandler: true}); //TTS출력되지 않아도 화면전환
+        navigation.navigate('Schedule', {startVoiceHandler: true});
       }
     } else {
       assistantResponse = '죄송합니다. 이해하지 못했습니다.';
@@ -316,15 +294,7 @@ export default function HomeScreen() {
       try {
         // 대기 시간 추가
         await new Promise(resolve => setTimeout(resolve, 500));
-
-        Tts.speak(assistantResponse, {
-          iosVoiceId: 'com.apple.ttsbundle.Yuna-compact',
-          androidParams: {
-            KEY_PARAM_PAN: -1,
-            KEY_PARAM_VOLUME: 1.0,
-            KEY_PARAM_STREAM: 'STREAM_MUSIC',
-          },
-        });
+        await speak(assistantResponse);
       } catch (error) {
         console.error('TTS error:', error);
       }
@@ -335,7 +305,6 @@ export default function HomeScreen() {
     try {
       console.log('Starting voice recognition');
       await Voice.start('ko-KR');
-      //await Voice.start('en-US');
       setRecording(true);
     } catch (e) {
       console.error('startListening error: ', e);
@@ -440,7 +409,7 @@ export default function HomeScreen() {
         <TouchableOpacity
           className="self-center"
           onPress={recording ? stopListening : startListening}
-          disabled={isTtsSpeaking}
+          disabled={isSpeaking}
           accessibilityLabel={
             recording ? '보이스 모드 중지' : '보이스 모드 시작'
           }
@@ -451,14 +420,14 @@ export default function HomeScreen() {
           }>
           {recording ? (
             colorScheme === 'dark' ? (
-              <StopDark height={hp(13)} opacity={isTtsSpeaking ? 0.5 : 1} />
+              <StopDark height={hp(13)} opacity={isSpeaking ? 0.5 : 1} />
             ) : (
-              <Stop height={hp(13)} opacity={isTtsSpeaking ? 0.5 : 1} />
+              <Stop height={hp(13)} opacity={isSpeaking ? 0.5 : 1} />
             )
           ) : colorScheme === 'dark' ? (
-            <RecordingDark height={hp(13)} opacity={isTtsSpeaking ? 0.5 : 1} />
+            <RecordingDark height={hp(13)} opacity={isSpeaking ? 0.5 : 1} />
           ) : (
-            <Recording height={hp(13)} opacity={isTtsSpeaking ? 0.5 : 1} />
+            <Recording height={hp(13)} opacity={isSpeaking ? 0.5 : 1} />
           )}
         </TouchableOpacity>
       </View>

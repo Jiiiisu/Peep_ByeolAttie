@@ -8,6 +8,7 @@ import {
   Modal,
   ScrollView,
   ToastAndroid,
+  BackHandler,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
@@ -18,12 +19,14 @@ import {speak, cleanupAndNavigate } from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import TimePicker from '../components/TimePicker';
 import {useTheme} from '../constants/ThemeContext';
+import {useSpeech} from '../constants/SpeechContext';
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 export default function InputScreen2({route}) {
   const navigation = useNavigation();
   const {colorScheme, toggleTheme} = useTheme();
+  const {speak, stopSpeech} = useSpeech();
 
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
@@ -40,6 +43,12 @@ export default function InputScreen2({route}) {
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     setSelectedTime(`${hours}:${minutes}`);
+
+    // 하드웨어 백 버튼 이벤트 처리
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleGoBack
+    );
 
     if (route.params) {
       const {name, dosage, editItem, isVoiceMode: voiceMode} = route.params;
@@ -59,8 +68,12 @@ export default function InputScreen2({route}) {
     if (isVoiceMode) {
       startVoiceInput();
     }
-  }, [route.params, isVoiceMode, currentStep]);
 
+    return () => {
+      backHandler.remove(); // 이벤트 리스너 제거
+    };
+  }, [route.params, isVoiceMode, currentStep, handleGoBack]);
+  
   const initVoice = async () => {
     try {
       await Voice.destroy();
@@ -529,13 +542,23 @@ export default function InputScreen2({route}) {
   const minutes = Array.from({length: 60}, (_, i) =>
     i.toString().padStart(2, '0'),
   );
+  
+  // 뒤로 가기 버튼 처리 (기존 함수를 수정)
+  const handleGoBack = useCallback(() => {
+    navigation.navigate('Input1', {
+      name: route.params?.name,
+      dosage: route.params?.dosage,
+      isVoiceMode: route.params?.isVoiceMode,
+    });
+    return true; // 이벤트를 소비했음을 나타냄
+  }, [navigation, route.params]);
 
   // Render
   function renderHeader() {
     return (
       <View className="flex-row mt-8 px-4 items-center justify-between z-10">
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={handleGoBack}
           accessibilityLabel="뒤로 가기"
           accessibilityHint="약 이름과 복용량을 다시 설정합니다"
           accessibilityOrder={2}>

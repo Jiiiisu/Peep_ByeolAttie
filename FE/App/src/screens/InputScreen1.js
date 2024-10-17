@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,6 @@ import {
   ScrollView,
   ToastAndroid,
 } from 'react-native';
-import {
-  widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from 'react-native-responsive-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   useNavigation,
@@ -18,38 +14,60 @@ import {
   useFocusEffect,
 } from '@react-navigation/native';
 import Voice from '@react-native-voice/voice';
-import {speak} from './ScheduleVoiceHandler';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useTheme} from '../constants/ThemeContext';
+import {useSpeech} from '../constants/SpeechContext';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
 export default function InputScreen({route}) {
   const navigation = useNavigation();
   const {colorScheme, toggleTheme} = useTheme();
+  const {speak, stopSpeech} = useSpeech();
 
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [currentStep, setCurrentStep] = useState('');
-  const [isInitialized, setIsInitialized] = useState(false); //TTS가 한번만 출력되도록 하는 변수
 
   useFocusEffect(
     useCallback(() => {
-      // 화면이 포커스를 받을 때마다 실행
-      if (route.params?.resetInputs) {
-        setName('');
-        setDosage('');
-        setCurrentStep('name');
-      }
-      setIsVoiceMode(route.params?.isVoiceMode || false);
-      initializeScreen();
-      return () => {
-        // 화면이 포커스를 잃을 때 실행 (필요한 경우)
+      const onFocus = () => {
+        if (route.params?.resetInputs) {
+          setName('');
+          setDosage('');
+          setCurrentStep('name');
+        } else if (route.params?.name && route.params?.dosage) {
+          setName(route.params.name);
+          setDosage(route.params.dosage);
+        }
+        setIsVoiceMode(route.params?.isVoiceMode || false);
+        initializeScreen();
       };
-    }, [route.params]),
+
+      onFocus();
+
+      return () => {
+        Voice.destroy().then(Voice.removeAllListeners);
+        stopSpeech();
+      };
+    }, [route.params, stopSpeech ])
   );
 
+  useEffect(() => {
+    // 상태가 변경될 때마다 AsyncStorage에 저장
+    const saveState = async () => {
+      await AsyncStorage.setItem('inputName', name);
+      await AsyncStorage.setItem('inputDosage', dosage);
+    };
+    saveState();
+  }, [name, dosage]);
+
+  // useEffect(() => {
+  //   if (isVoiceMode && currentStep) {
+  //     startVoiceInput();
+  //   }
+  // }, [isVoiceMode, currentStep]);
   useEffect(() => {
     initializeScreen();
 
@@ -72,6 +90,7 @@ export default function InputScreen({route}) {
 
     if (route.params?.isVoiceMode) {
       startVoiceInput();
+      //setCurrentStep('name');
     }
   };
 

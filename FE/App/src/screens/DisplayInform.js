@@ -15,7 +15,7 @@ import {
 import {GetInfoByName, GetDetailedInfo} from './getInform';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {speak} from './ScheduleVoiceHandler';
+import { useSpeech } from '../constants/SpeechContext';
 import {useTheme} from '../constants/ThemeContext';
 
 const DisplayInform = ({route}) => {
@@ -32,6 +32,7 @@ const DisplayInform = ({route}) => {
   const [efcyQesitm, setEfcyQesitm] = useState('');
   const [useMethodQesitm, setUseMethodQesitm] = useState('');
   const [atpnWarnQesitm, setAtpnWarnQesitm] = useState('');
+  const { speak } = useSpeech();
 
   const fetchData = async medicineName => {
     setLoading(true);

@@ -7,11 +7,11 @@ import {
 } from 'react-native-responsive-screen';
 import {request, PERMISSIONS, RESULTS, check} from 'react-native-permissions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {speak} from './ScheduleVoiceHandler';
+import { useSpeech } from '../constants/SpeechContext';
 
 export default function WelcomeScreen() {
   const navigation = useNavigation();
-
+  const { speak } = useSpeech();
   const onboardingData = [
     {
       image: require('../../assets/images/Onboarding_First.png'),
