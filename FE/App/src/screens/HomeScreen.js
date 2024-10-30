@@ -276,6 +276,26 @@ export default function HomeScreen() {
         console.error('TTS error:', error);
         navigation.navigate('Schedule', {startVoiceHandler: true});
       }
+    } else if (userMessage.includes('큐알') || userMessage.includes('qr') || userMessage.includes('바코드')) {
+      assistantResponse = '큐알, 바코드 페이지로 이동합니다';
+      await stopListening();
+      setMessages(prevMessages => [
+        ...prevMessages,
+        {role: 'assistant', content: assistantResponse},
+      ]);
+      // 대기 시간 추가
+      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        await speak(assistantResponse);
+        // 음성 출력이 끝난 후 화면 전환
+        setTimeout(() => {
+          resetVoiceState(); // 음성 인식 상태 초기화
+          navigation.navigate('QRBarcodeScanner');
+        }, 1000);
+      } catch (error) {
+        console.error('TTS error:', error);
+        navigation.navigate('QRBarcodeScanner');
+      }
     } else {
       assistantResponse = '죄송합니다. 이해하지 못했습니다.';
       setMessages(prevMessages => [

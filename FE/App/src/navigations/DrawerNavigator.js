@@ -8,6 +8,7 @@ import WelcomeScreen from '../screens/WelcomeScreen';
 import ScheduleScreen from '../screens/ScheduleScreen';
 import SettingScreen from '../screens/SettingScreen';
 import CameraScreen from '../screens/CameraScreen';
+import QRBarcodeScanner from '../screens/QRBarcodeScanner';
 import DisplayInform from '../screens/DisplayInform';
 import {useTheme} from '../constants/ThemeContext';
 
@@ -73,6 +74,19 @@ const CustomDrawerContent = props => {
         className={`flex-row items-center p-3 rounded-lg mb-2 ${
           isDark ? 'bg-gray-700' : 'bg-gray-100'
         }`}
+        onPress={() => props.navigation.navigate('QRBarcodeScanner')}>
+        <Icon name="crop-free" size={24} color={isDark ? '#fff' : '#000'} />
+        <Text
+          className={`text-[24px] font-Regular ml-4 ${
+            isDark ? 'text-white' : 'text-black'
+          }`}>
+          QR 바코드
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        className={`flex-row items-center p-3 rounded-lg mb-2 ${
+          isDark ? 'bg-gray-700' : 'bg-gray-100'
+        }`}
         onPress={() => props.navigation.navigate('Help')}>
         <Icon name="help" size={24} color={isDark ? '#fff' : '#000'} />
         <Text
@@ -118,6 +132,7 @@ const DrawerNavigator = () => {
       <Drawer.Screen name="Help" component={WelcomeScreen} />
       <Drawer.Screen name="Schedule" component={ScheduleScreen} />
       <Drawer.Screen name="Camera" component={CameraScreen} />
+      <Drawer.Screen name="QRBarcodeScanner" component={QRBarcodeScanner} />
       <Drawer.Screen name="DisplayInform" component={DisplayInform} />
       <Drawer.Screen name="Setting" component={SettingScreen} />
     </Drawer.Navigator>
