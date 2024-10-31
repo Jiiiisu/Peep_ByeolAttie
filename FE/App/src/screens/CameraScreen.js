@@ -232,6 +232,8 @@ export default function CameraScreen() {
 
   // Send image to predict server
   const sendImageToClassificationServer = async imagePath => {
+    console.log('===== 분류 서버 요청 시작 =====');
+    setIsLoading(true);
     const formData = new FormData();
     formData.append('image', {
       uri: `file://${imagePath}`,
@@ -240,7 +242,7 @@ export default function CameraScreen() {
     });
 
     try {
-      //const response = await fetch('http://13.124.74.207:5000/predict', {
+      console.log('서버로 이미지 전송 중...');
       const response = await fetch(`${SERVER_URL}/predict`, {
         method: 'POST',
         body: formData,
@@ -249,13 +251,44 @@ export default function CameraScreen() {
         },
       });
 
+      console.log(`서버 응답 상태: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`서버 응답 오류: ${response.status}`);
+      }
+
       const result = await response.json();
-      console.log('Classification server response:', result);
-      setClassificationResult(result);
-      return result;
+      console.log('서버로부터 가져온 값: %o', result);
+      console.log(`처리된 약물 이름: ${result[0]?.class || '없음'}`);
+      console.log(`신뢰도: ${result[0]?.confidence || '없음'}`);
+      
+      // 결과 구조 검증
+      if (!result) {
+        throw new Error('서버 응답이 비어있습니다');
+      }
+
+      const processedResult = Array.isArray(result) ? result[0] : result;
+      console.log('===== 최종 처리된 결과 =====');
+      console.log(`약물 이름: ${processedResult?.class || '없음'}`);
+      console.log(`신뢰도: ${processedResult?.confidence || '없음'}`);
+      
+      if (!processedResult || !processedResult.class) {
+        throw new Error('잘못된 응답 형식');
+      }
+
+      setClassificationResult(processedResult);
+      return processedResult;
+
     } catch (error) {
-      console.error('Error sending image to classification server:', error);
+      console.error('===== 분류 서버 오류 =====');
+      console.error('오류 메시지:', error.message);
+      console.error('오류 세부정보:', error.stack);
+      ToastAndroid.show(
+        '약 분류 중 오류가 발생했습니다. 다시 시도해주세요.',
+        ToastAndroid.SHORT,
+      );
       return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -444,69 +477,144 @@ export default function CameraScreen() {
   }, []);
 
   const takePicture = async () => {
-    if (camera.current) {
-      setIsServerProcessing(true);
-      setIsProcessingEnabled(false); // Disable frame processing
-      stopEverything();
-      setIsAutoCapturing(false); // 수동 촬영 시 자동 촬영 중지
-      setIsLoading(true);
-      try {
+    if (!camera.current || isLoading) {
+        return;
+    }
+
+    try {
+        setIsLoading(true);
+        setIsServerProcessing(true);
+        setIsProcessingEnabled(false);
+        stopEverything();
+        setIsAutoCapturing(false);
+
         const photo = await camera.current.takePhoto();
-        const imagePath = photo.path;
         const destinationPath = `${
-          RNFS.DocumentDirectoryPath
+            RNFS.DocumentDirectoryPath
         }/images/photo_${Date.now()}.png`;
+
+        // 디렉토리 확인 및 생성
         const dirPath = `${RNFS.DocumentDirectoryPath}/images`;
         if (!(await RNFS.exists(dirPath))) {
-          await RNFS.mkdir(dirPath);
+            await RNFS.mkdir(dirPath);
         }
-        await RNFS.moveFile(imagePath, destinationPath);
+
+        await RNFS.moveFile(photo.path, destinationPath);
         setImageData(destinationPath);
         setTakePhotoClicked(false);
-        console.log('사진 저장됨:', destinationPath);
 
+        console.log('사진 저장 완료:', destinationPath);
+
+        // 객체 감지
         const detectionResult = await sendImageToServer(destinationPath);
-        if (detectionResult && detectionResult.result) {
-          const classificationResult = await sendImageToClassificationServer(
-            destinationPath,
-          );
-          if (classificationResult) {
-            handleClassificationResult(classificationResult);
-          } else {
-            throw new Error('분류 실패');
-          }
+        console.log('Detection result:', detectionResult);
+
+        if (detectionResult?.result) {
+            console.log('약물 감지 성공, 분류 시작');
+            const classificationResult = await sendImageToClassificationServer(destinationPath);
+            
+            if (classificationResult) {
+                console.log('분류 결과:', classificationResult);
+                await handleClassificationResult(classificationResult);
+            } else {
+                throw new Error('분류 결과 없음');
+            }
         } else {
-          throw new Error('약이 감지되지 않음');
+            throw new Error('약물 감지 실패');
         }
-      } catch (error) {
-        console.error('Error in takePicture:', error);
+
+    } catch (error) {
+        console.error('takePicture error:', error);
         ToastAndroid.show(
-          '약이 인식되지 않았습니다. 다시 시도해주세요.',
-          ToastAndroid.SHORT,
+            '약이 인식되지 않았습니다. 다시 시도해주세요.',
+            ToastAndroid.SHORT,
         );
+    } finally {
         setIsLoading(false);
-        setIsAutoCapturing(true);
-      } finally {
         setIsServerProcessing(false);
-        setIsProcessingEnabled(true); // Re-enable frame processing
-        setIsLoading(false);
-      }
+        setIsProcessingEnabled(true);
     }
   };
 
   const handleClassificationResult = useCallback(
-    result => {
-      stopEverything();
-      const message = `감지된 약: ${result.class}`;
-      setRecognizedText(message);
-      speak(message);
-      console.log('약 감지 결과:', message);
-      navigation.navigate('Inform', {
-        medicineName: result.class,
-      });
+    async result => {
+      console.log('===== 분류 결과 처리 시작 =====');
+      console.log('전달받은 결과:', result);
+      
+      try {
+        if (!result) {
+          console.error('결과 없음');
+          throw new Error('결과가 없습니다');
+        }
+
+        let medicineData;
+        if (Array.isArray(result)) {
+          console.log('배열 형태의 결과, 첫 번째 항목 사용');
+          medicineData = result[0];
+        } else {
+          console.log('객체 형태의 결과');
+          medicineData = result;
+        }
+
+        console.log('===== 처리된 약물 정보 =====');
+        console.log(`약물 이름: ${medicineData?.class || '없음'}`);
+        console.log(`신뢰도: ${medicineData?.confidence || '없음'}`);
+
+        if (!medicineData || !medicineData.class) {
+          console.error('잘못된 약물 데이터:', medicineData);
+          throw new Error('약물 정보가 없습니다');
+        }
+
+        stopEverything();
+        setIsLoading(false);
+        setIsAutoCapturing(false);
+        setIsServerProcessing(false);
+        setIsProcessingEnabled(false);
+        
+        const message = `감지된 약: ${medicineData.class}`;
+        setRecognizedText(message);
+        await speak(message);
+        
+        console.log('===== 네비게이션 준비 =====');
+        console.log(`이동할 약물 이름: ${medicineData.class}`);
+        
+        setTimeout(() => {
+          try {
+            if (medicineData && medicineData.class) {
+              console.log('Inform 화면으로 이동 중...');
+              navigation.navigate('Inform', {
+                medicineName: medicineData.class,
+                confidence: medicineData.confidence
+              });
+              console.log('화면 이동 완료');
+            } else {
+              throw new Error('네비게이션 데이터 오류');
+            }
+          } catch (navError) {
+            console.error('네비게이션 오류:', navError);
+            ToastAndroid.show(
+              '화면 전환 중 오류가 발생했습니다.',
+              ToastAndroid.SHORT
+            );
+          }
+        }, 1000);
+
+      } catch (error) {
+        console.error('===== 결과 처리 오류 =====');
+        console.error('오류 종류:', error.message);
+        setIsLoading(false);
+        setIsAutoCapturing(true);
+        setIsServerProcessing(false);
+        setIsProcessingEnabled(true);
+        
+        ToastAndroid.show(
+          '약 정보를 불러오는데 실패했습니다. 다시 시도해주세요.',
+          ToastAndroid.SHORT,
+        );
+      }
     },
-    [navigation],
-  );
+    [navigation, speak, stopEverything],
+    );
 
   // Render
   function renderHeader() {
